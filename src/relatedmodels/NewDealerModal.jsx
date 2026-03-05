@@ -81,7 +81,7 @@ function NewDealerModal({ show, handleClose, fetchDealers, record, newData }) {
         ModifiedBy: helperMethods.fetchUser(),
         ModifiedDate: helperMethods.dateToString(),
       };
-      const res = await fetch(`${apiData.PORT}/api/dealer/insert`, {
+      const res = await fetch(`${apiData.PORT}/api/dealers/insert`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -119,7 +119,7 @@ function NewDealerModal({ show, handleClose, fetchDealers, record, newData }) {
         ModifiedBy: helperMethods.fetchUser(),
         ModifiedDate: helperMethods.dateToString(),
       };
-      const res = await fetch(`${apiData.PORT}/api/dealer/update`, {
+      const res = await fetch(`${apiData.PORT}/api/dealers/update`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

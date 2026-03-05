@@ -8,6 +8,8 @@ import fs from "fs";
 import multer from "multer";
 import bcrypt from "bcrypt";
 import validator from "validator";
+import { objectFields, auditFields,updateAuditFields } from "./fieldsHelper.js";
+
 dotenv.config();
 const app = express();
 app.use(express.json());
@@ -18,14 +20,28 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://192.168.2.101:5173",
-      "http://192.168.2.103:5174",
+      "http://192.168.2.102:5174",
       "http://192.168.2.103:5173",
+      "http://192.168.2.104:5173",
       "https://jpfincorp.com",
     ],
-    methods: ["GET", "POST", "DELETE"],
+    methods: ["GET", "POST", "DELETE","PUT"],
     credentials: true,
   })
 );
+const SENSITIVE_FIELDS = [
+  "password",
+  "Password",
+  "passwd",
+  "pwd",
+  "password_hash",
+  "hash",
+  "salt",
+  "token",
+  "access_token",
+  "refresh_token",
+  "secret"
+];
 
 // ✅ MySQL connection pool
 const db = mysql.createPool({
@@ -127,184 +143,256 @@ app.get("/api/get/:entityName", async (req, res) => {
   const { entityName } = req.params;
   const filters = req.query;
 
-  const entityRelations = {
-    users: {
-      user_id:     { table: "users",     columns: ["id", "name", "email"] },
-      // dealer_id:   { table: "dealers",   columns: ["id", "name", "phone"] },
-      // customer_id: { table: "customers", columns: ["id", "name", "address"] },
-    },
-  };
+  // ✅ Validate table name
+  if (!/^[a-zA-Z0-9_]+$/.test(entityName)) {
+    return sendResponse(res, false, "Invalid table name");
+  }
 
   try {
-    // ✅ Step 1: Fetch actual columns of the requested table
-    const [columnRows] = await db.query(
-      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ? AND TABLE_SCHEMA = DATABASE()`,
-      [entityName]
-    );
-
-    if (columnRows.length === 0) {
+    // Step 0: Ensure table exists
+    if (!(await tableExists(db, entityName))) {
       return sendResponse(res, false, `Table '${entityName}' does not exist`);
     }
 
-    const tableColumns = columnRows.map((r) => r.COLUMN_NAME);
-
-    // ✅ Step 2: Only keep relations where FK column actually exists in the table
-    const allRelations = entityRelations[entityName] || {};
-    const validRelations = Object.fromEntries(
-      Object.entries(allRelations).filter(([fk]) => {
-        const exists = tableColumns.includes(fk);
-        if (!exists) console.warn(`Skipping FK '${fk}' — not found in '${entityName}'`);
-        return exists;
-      })
+    // Step 1: Discover foreign keys
+    const [fkRows] = await db.query(
+      `
+      SELECT 
+        kcu.COLUMN_NAME AS fk_column,
+        kcu.REFERENCED_TABLE_NAME AS parent_table,
+        kcu.REFERENCED_COLUMN_NAME AS parent_column
+      FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
+      JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+        ON kcu.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
+       AND kcu.TABLE_SCHEMA = tc.TABLE_SCHEMA
+      WHERE tc.CONSTRAINT_TYPE = 'FOREIGN KEY'
+        AND kcu.TABLE_NAME = ?
+        AND kcu.TABLE_SCHEMA = DATABASE()
+      `,
+      [entityName]
     );
 
-    // Step 3: Build SELECT and JOINs from valid relations only
-    const selectParts = [`child.*`];
+    // Step 2: Load parent table columns (excluding sensitive)
+    const relations = {};
+    for (const { fk_column, parent_table, parent_column } of fkRows) {
+      const [parentCols] = await db.query(
+        `
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_NAME = ?
+          AND TABLE_SCHEMA = DATABASE()
+        `,
+        [parent_table]
+      );
+
+      relations[fk_column] = {
+        table: parent_table,
+        refColumn: parent_column,
+        columns: parentCols
+          .map(c => c.COLUMN_NAME)
+          .filter(c => !SENSITIVE_FIELDS.includes(c.toLowerCase()))
+      };
+    }
+
+    // Step 3: Build SELECT & JOINs
+    const selectParts = ["child.*"];
     const joinParts = [];
 
-    Object.entries(validRelations).forEach(([fk, { table, columns }]) => {
-      const alias = table;
-      columns.forEach((col) => {
-        selectParts.push(`${alias}.${col} AS ${alias}__${col}`);
+    Object.entries(relations).forEach(([fk, meta]) => {
+      const { table, refColumn, columns } = meta;
+      const alias = `${table}__${fk}`;
+
+      columns.forEach(col => {
+        selectParts.push(
+          `\`${alias}\`.\`${col}\` AS \`${alias}__${col}\``
+        );
       });
+
       joinParts.push(
-        `LEFT JOIN \`${table}\` AS \`${alias}\` ON child.\`${fk}\` = \`${alias}\`.id`
+        `LEFT JOIN \`${table}\` AS \`${alias}\`
+         ON child.\`${fk}\` = \`${alias}\`.\`${refColumn}\``
       );
     });
 
-    let sql = `SELECT ${selectParts.join(", ")} FROM \`${entityName}\` AS child`;
-    if (joinParts.length) sql += ` ${joinParts.join(" ")}`;
+    let sql = `
+      SELECT ${selectParts.join(", ")}
+      FROM \`${entityName}\` AS child
+    `;
+    if (joinParts.length) sql += " " + joinParts.join(" ");
 
-    // Step 4: Apply WHERE filters (only on columns that exist)
+    // Step 4: WHERE filters (non-sensitive only)
+    const [colRows] = await db.query(
+      `
+      SELECT COLUMN_NAME
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_NAME = ?
+        AND TABLE_SCHEMA = DATABASE()
+      `,
+      [entityName]
+    );
+
+    const tableColumns = colRows
+      .map(r => r.COLUMN_NAME)
+      .filter(c => !SENSITIVE_FIELDS.includes(c.toLowerCase()));
+
     const params = [];
-    const keys = Object.keys(filters).filter((key) => {
-      const exists = tableColumns.includes(key);
-      if (!exists) console.warn(`Skipping filter '${key}' — not found in '${entityName}'`);
-      return exists;
-    });
+    const validFilters = Object.keys(filters).filter(k =>
+      tableColumns.includes(k)
+    );
 
-    if (keys.length > 0) {
-      const whereClauses = keys.map((key) => {
-        params.push(filters[key]);
-        return `child.\`${key}\` = ?`;
-      });
-      sql += ` WHERE ${whereClauses.join(" AND ")}`;
+    if (validFilters.length) {
+      sql +=
+        " WHERE " +
+        validFilters
+          .map(k => {
+            params.push(filters[k]);
+            return `child.\`${k}\` = ?`;
+          })
+          .join(" AND ");
     }
 
+    // Step 5: Execute query
     const [rows] = await db.query(sql, params);
 
-    // Step 5: Reshape into nested parent objects
-    const shaped = rows.map((row) => {
+    // Step 6: Reshape flat rows → nested objects
+    const shaped = rows.map(row => {
       const result = {};
-      Object.entries(row).forEach(([col, val]) => {
-        const match = col.match(/^([a-z]+)__(.+)$/);
+
+      Object.entries(row).forEach(([key, value]) => {
+        const match = key.match(/^(.+?)__([^_]+)$/);
+
         if (match) {
           const [, parentAlias, field] = match;
-          result[parentAlias] = result[parentAlias] || {};
-          result[parentAlias][field] = val;
-          // Null out the whole parent if id is null (no related record)
-          if (field === "id" && val === null) result[parentAlias] = null;
+          if (!result[parentAlias]) result[parentAlias] = {};
+          result[parentAlias][field] = value;
+
+          if (field === "id" && value === null) {
+            result[parentAlias] = null;
+          }
         } else {
-          result[col] = val;
+          result[key] = value;
         }
       });
+
       return result;
     });
 
-    sendResponse(res, true, shaped.length ? "Success" : "No records", shaped);
+    sendResponse(
+      res,
+      true,
+      shaped.length ? "Success" : "No records",
+      shaped
+    );
   } catch (err) {
-    console.error("Error:", err);
+    console.error("DB Error:", err);
     sendResponse(res, false, "Database error");
   }
 });
 
+// ✅ Helper: Table existence
+async function tableExists(db, tableName) {
+  const [rows] = await db.query(
+    `
+    SELECT COUNT(*) AS count
+    FROM INFORMATION_SCHEMA.TABLES
+    WHERE TABLE_NAME = ?
+      AND TABLE_SCHEMA = DATABASE()
+    `,
+    [tableName]
+  );
+
+  return rows[0].count > 0;
+}
 /* ============================================================
    🔍 RELATED RECORDS
 ============================================================ */
-app.get("/records/related/:entity/:field/:parentId", async (req, res) => {
-  const { entity, field, parentId } = req.params;
-  try {
-    const [rows] = await db.query("SELECT * FROM ?? WHERE ?? = ?", [
-      entity,
-      field,
-      parentId,
-    ]);
-    sendResponse(res, true, "Success", rows);
-  } catch (err) {
-    console.error("Error:", err);
-    sendResponse(res, false, "Database error");
-  }
-});
+// app.get("/records/related/:entity/:field/:parentId", async (req, res) => {
+//   const { entity, field, parentId } = req.params;
+//   try {
+//     const [rows] = await db.query("SELECT * FROM ?? WHERE ?? = ?", [
+//       entity,
+//       field,
+//       parentId,
+//     ]);
+//     sendResponse(res, true, "Success", rows);
+//   } catch (err) {
+//     console.error("Error:", err);
+//     sendResponse(res, false, "Database error");
+//   }
+// });
 
 /* ============================================================
    🔎 DETAILS BY ID
 ============================================================ */
-app.get("/details/:entity/:id", async (req, res) => {
-  const { entity, id } = req.params;
-  try {
-    const [rows] = await db.query("SELECT * FROM ?? WHERE Id = ?", [
-      entity,
-      id,
-    ]);
-    rows.length
-      ? sendResponse(res, true, "Success", rows[0])
-      : sendResponse(res, false, "No record found");
-  } catch (err) {
-    console.error("Error:", err);
-    sendResponse(res, false, "Database error");
-  }
-});
+// app.get("/details/:entity/:id", async (req, res) => {
+//   const { entity, id } = req.params;
+//   try {
+//     const [rows] = await db.query("SELECT * FROM ?? WHERE Id = ?", [
+//       entity,
+//       id,
+//     ]);
+//     rows.length
+//       ? sendResponse(res, true, "Success", rows[0])
+//       : sendResponse(res, false, "No record found");
+//   } catch (err) {
+//     console.error("Error:", err);
+//     sendResponse(res, false, "Database error");
+//   }
+// });
 
 /* ============================================================
    💰 PRICEBOOK + PRICEBOOKENTRY JOIN
 ============================================================ */
-app.get(
-  "/api/fetch/price-book-and-price-book-entry/:dealerId/:modalId",
-  async (req, res) => {
-    const { dealerId, modalId } = req.params;
-    try {
-      const query = `
-        SELECT 
-          pb.Id AS pricebook_id,
-          pb.Name AS PricebookName,
-          pb.Dealer,
-          pb.Product,
-          pbe.Id AS pricebookentry_id,
-          pbe.Unitprice,
-          pbe.Name AS EntryName,
-          pbe.Isactive,
-          pbe.Pricebook
-        FROM pricebook pb
-        JOIN pricebookentry pbe 
-          ON pb.Id = pbe.Pricebook
-        WHERE pb.Dealer = ? AND pbe.Product = ?;
-      `;
-      const [rows] = await db.query(query, [dealerId, modalId]);
-      sendResponse(
-        res,
-        rows.length > 0,
-        rows.length > 0 ? "Success" : "No records found",
-        rows
-      );
-    } catch (err) {
-      console.error("Error:", err);
-      sendResponse(res, false, "Database error");
-    }
-  }
-);
+// app.get(
+//   "/api/fetch/price-book-and-price-book-entry/:dealerId/:modalId",
+//   async (req, res) => {
+//     const { dealerId, modalId } = req.params;
+//     try {
+//       const query = `
+//         SELECT 
+//           pb.Id AS pricebook_id,
+//           pb.Name AS PricebookName,
+//           pb.Dealer,
+//           pb.Product,
+//           pbe.Id AS pricebookentry_id,
+//           pbe.Unitprice,
+//           pbe.Name AS EntryName,
+//           pbe.Isactive,
+//           pbe.Pricebook
+//         FROM pricebook pb
+//         JOIN pricebookentry pbe 
+//           ON pb.Id = pbe.Pricebook
+//         WHERE pb.Dealer = ? AND pbe.Product = ?;
+//       `;
+//       const [rows] = await db.query(query, [dealerId, modalId]);
+//       sendResponse(
+//         res,
+//         rows.length > 0,
+//         rows.length > 0 ? "Success" : "No records found",
+//         rows
+//       );
+//     } catch (err) {
+//       console.error("Error:", err);
+//       sendResponse(res, false, "Database error");
+//     }
+//   }
+// );
 /* ============================================================
    🔍 RELATED CHILDS
 ============================================================ */
 app.get("/api/related/childs/:entity", async (req, res) => {
   const { entity } = req.params;
   try {
-    const [rows] = await db.query(`SELECT 
-    table_name AS child_table,
-    column_name AS child_column,
-    constraint_name
-FROM information_schema.KEY_COLUMN_USAGE
-WHERE referenced_table_name = ${entity}
-  AND referenced_column_name = 'id';`);
+    const [rows] = await db.query(`
+      SELECT 
+        table_name AS child_table,
+        column_name AS child_column,
+        constraint_name
+      FROM information_schema.KEY_COLUMN_USAGE
+      WHERE referenced_table_name = ?
+        AND referenced_column_name = 'id'`,
+      [entity]  // Pass entity as parameter - MySQL will properly quote it
+    );
     sendResponse(res, true, "Success", rows);
   } catch (err) {
     console.error("Error:", err);
@@ -314,13 +402,14 @@ WHERE referenced_table_name = ${entity}
 /* ============================================================
    ❌ DELETE RECORD
 ============================================================ */
-app.delete("/delete/:entity/:id", async (req, res) => {
+app.delete("/api/delete/:entity/:id", async (req, res) => {
   const { entity, id } = req.params;
   try {
     const [result] = await db.query("DELETE FROM ?? WHERE Id = ?", [
       entity,
       id,
     ]);
+
     result.affectedRows > 0
       ? sendResponse(res, true, "Record deleted successfully")
       : sendResponse(res, false, "Record not found");
@@ -349,174 +438,65 @@ const insertRecord = async (res, table, fields, values) => {
   }
 };
 
-// ✅ Dealer Insert
-app.post("/api/dealer/insert", (req, res) => {
-  const fields = [
-    "Id",
-    "Name",
-    "Phone",
-    "Email",
-    "Country",
-    "State",
-    "District",
-    "PinCode",
-    "Street",
-    "OwnerName",
-  ];
+const updateRecord = async (res, table, fields, values, id) => {
+  try {
+    const setClause = fields.map((f) => `${f} = ?`).join(", ");
+    const query = `UPDATE ${table} SET ${setClause} WHERE Id = ?`;
+    const [result] = await db.query(query, [...values, id]);
+
+    if (result.affectedRows === 0) {
+      return sendResponse(res, false, "Record not found");
+    }
+
+    sendResponse(res, true, "Record updated successfully", {
+      id: parseInt(id),
+      affectedRows: result.affectedRows,
+    });
+  } catch (err) {
+    console.error(`Error updating ${table}:`, err);
+    sendResponse(res, false, err.message || "Update failed");
+  }
+};
+
+app.post("/api/:entity/insert", (req, res) => {
+  const { entity } = req.params;
+
+  const baseFields = objectFields[entity];
+  if (!baseFields) {
+    return res.status(400).json({ error: "Invalid entity" });
+  }
+
+  const fields = [...baseFields, ...auditFields];
+
   insertRecord(
     res,
-    "dealers",
+    entity,
     fields,
     fields.map((f) => req.body[f])
   );
 });
 
-// ✅ Customer Insert
-app.post("/api/customers/insert", (req, res) => {
-  const fields = [
-    "Id",
-    "FirstName",
-    "LastName",
-    "Email",
-    "Phone",
-    "Country",
-    "State",
-    "District",
-    "PinCode",
-    "Street",
-    "Dealer",
-    "Type",
-    "DateOfBirth",
-  ];
-  insertRecord(
+
+app.put("/api/:entity/update", (req, res) => {
+  const { entity} = req.params;
+
+  const baseFields = objectFields[entity];
+  if (!baseFields) {
+    return res.status(400).json({ error: "Invalid entity" });
+  }
+
+  const fields = [...baseFields, ...updateAuditFields];
+
+  updateRecord(
     res,
-    "customers",
+    entity,
     fields,
-    fields.map((f) => req.body[f])
+    fields.map((f) => req.body[f]),
+    req.body['Id']
   );
 });
-
-// ✅ Brand Insert
-app.post("/api/brands/insert", (req, res) => {
-  const fields = ["Id", "Name", "Description"];
-  insertRecord(
-    res,
-    "brands",
-    fields,
-    fields.map((f) => req.body[f])
-  );
-});
-
-// ✅ Product Insert
-app.post("/api/products/insert", (req, res) => {
-  const fields = [
-    "Id",
-    "Name",
-    "Code",
-    "CCPower",
-    "ModelMonth",
-    "ModelYear",
-    "Description",
-    "BrandId",
-  ];
-  insertRecord(
-    res,
-    "products",
-    fields,
-    fields.map((f) => req.body[f])
-  );
-});
-
-// ✅ Pricebook Insert
-app.post("/api/pricebook/insert", (req, res) => {
-  const fields = ["Id", "Dealer"];
-  insertRecord(
-    res,
-    "pricebook",
-    fields,
-    fields.map((f) => req.body[f])
-  );
-});
-
-// ✅ PricebookEntry Insert
-app.post("/api/pricebookentry/insert", (req, res) => {
-  const fields = ["Id", "Pricebook", "Isactive", "Unitprice", "Product"];
-  insertRecord(
-    res,
-    "pricebookentry",
-    fields,
-    fields.map((f) => req.body[f])
-  );
-});
-
-// ✅ Loan Insert
-app.post("/api/loans/insert", (req, res) => {
-  const fields = [
-    "Id",
-    "Dealer",
-    "Agent",
-    "DealerFileNumber",
-    "ConditionType",
-    "Model",
-    "ModelMonth",
-    "ModelYear",
-    "CCPower",
-    "InsuranceType",
-    "ChasisNo",
-    "EngineNo",
-    "RegistrationNo",
-    "Color",
-    "TotalPrice",
-    "DownPayment",
-    "DisburseAmount",
-    "RateOfInterest",
-    "Tenure",
-    "EMIAmount",
-    "RemainingAmountWithInterest",
-    "FileCharge",
-    "RTOCharge",
-    "DealerComission",
-    "AgentComission",
-    "AgreementDate",
-    "FirstAutoDebitDate",
-    "EMIStartDate",
-    "EMIEndDate",
-    "PaymentOptions",
-    "Hirer",
-    "Guarantor",
-    "Referrer1",
-    "Referrer2",
-    "NOCDate",
-    "BillNo",
-    "RCNo",
-    "KeyNo",
-    "InsurancePolicyNo",
-    "InsuranceCompanyName",
-    "CustomerBankName",
-    "BankIFSC",
-    "BankMICR",
-    "BankAccountNumber",
-    "BankBranchName",
-    "AccountType",
-    "CustomerBankPhoneNumber",
-    "NumberOfCheques",
-    "ChequeNumber1",
-    "ChequeNumber2",
-    "ChequeNumber3",
-    "ChequeNumber4",
-    "ChequeNumber5",
-    "Description",
-  ];
-  insertRecord(
-    res,
-    "loans",
-    fields,
-    fields.map((f) => req.body[f])
-  );
-});
-
 // ✅ Bulk Loan Items Insert
-app.post("/api/loanitems/insert", async (req, res) => {
+app.post("/api/child/loanitems/insert", async (req, res) => {
   try {
     const records = req.body;
     if (!Array.isArray(records) || records.length === 0)

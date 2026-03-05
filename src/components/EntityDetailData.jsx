@@ -21,27 +21,33 @@ function EntityDetailPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`${apiData.PORT}/api/get/${entityType}?Id=${id}`);
+      const response = await fetch(
+        `${apiData.PORT}/api/get/${entityType}?Id=${id}`
+      );
 
       // const response = await fetch(`${apiData.PORT}/api/details/${entityType}/${id}`);
       if (!response.ok) throw new Error("Failed to fetch data");
 
       const data = await response.json();
+      console.log("data ::", data);
       if (data && data.data) {
         let childRecords = [];
-if(entityType !== 'users'){
-        const childresponse = await fetch(`${apiData.PORT}/api/related/childs/${entityType}`);
-        if (!childresponse.ok) throw new Error("Failed to fetch child records");
+        if (entityType !== "users") {
+          const childresponse = await fetch(
+            `${apiData.PORT}/api/related/childs/${entityType}`
+          );
+          if (!childresponse.ok)
+            throw new Error("Failed to fetch child records");
 
-        const childData = await childresponse.json();
-        if (childData && childData.success && childData.data.length > 0) {
-          childData.data.forEach((ele) => {
-            childRecords.push(ele.child_table + "-" + ele.child_column);
-          });
+          const childData = await childresponse.json();
+          if (childData && childData.success && childData.data.length > 0) {
+            childData.data.forEach((ele) => {
+              childRecords.push(ele.child_table + "-" + ele.child_column);
+            });
+          }
         }
-      }
         setChildRecords(childRecords);
-      
+
         setRecord(data.data[0]);
       } else {
         throw new Error("Invalid data format");
@@ -77,7 +83,13 @@ if(entityType !== 'users'){
     return (
       <>
         <CustomNavbar />
-        <div style={{ minHeight: "100vh", backgroundColor: "#f8f9fa", padding: "20px" }}>
+        <div
+          style={{
+            minHeight: "100vh",
+            backgroundColor: "#f8f9fa",
+            padding: "20px",
+          }}
+        >
           <div className="alert alert-danger">
             <strong>Error:</strong> {error}
           </div>

@@ -179,7 +179,7 @@ function CustomTable({
     return date instanceof Date && !isNaN(date.getTime());
   }
   function CreateClickablePiont(data) {
-    if (data && data.Name) {
+    if (data && (data.Name || data.Name)) {
       return (
         <span
           style={{

@@ -177,6 +177,8 @@ function NewCustomerModal({
         ModifiedBy: helperMethods.fetchUser(),
         ModifiedDate: helperMethods.dateToString(),
       };
+      console.log('payload :: ',payload)
+      // if(payload)return;
       const res = await fetch(`${apiData.PORT}/api/customers/insert`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -326,10 +328,11 @@ function NewCustomerModal({
                     {categories.map((name) => (
                       <div
                         key={name}
-                        className="d-flex align-items-center mb-2"
+                        className="d-flex align-items-center mb-2 custom-checkbox"
                       >
                         <Checkbox
                           inputId={name}
+                          className="check-type"
                           value={name}
                           onChange={onCategoryChange}
                           checked={newCustomer[name]}
@@ -476,7 +479,6 @@ function getEmptyCustomer() {
     LastName: "",
     Phone: "",
     Email: "",
-    Type: "",
     Country: "India",
     State: "Rajasthan",
     District: "",

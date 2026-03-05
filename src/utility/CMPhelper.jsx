@@ -7,17 +7,15 @@ export const helperMethods = {
   },
   fetchUser() {
     const user = JSON.parse(localStorage.getItem("userData"));
-    if (user && user.Id) {
-      return user.Id;
+    if (user && user.user && user.user.Id) {
+      return user.user.Id;
     }
     return null;
   },
   async fetchUserDetails (){
     const user = JSON.parse(localStorage.getItem("userData"));
-    if(!user)return
-    const response = await fetch(
-      `${apiData.PORT}/api/get/users?Id=${user.Id}`
-    );
+    if (!user || !user.user || !user.user.Id) return;
+    const response = await fetch(`${apiData.PORT}/api/get/users?Id=${user.user.Id}`);
     const responseResult = await response.json();
     if(!responseResult.success || !responseResult.data )return
     return responseResult.data[0];
@@ -74,17 +72,17 @@ export const helperMethods = {
     if (f === "createdby") {
       return {
         Id: value,
-        Name: `${data?.createdby_firstname || ""} ${
-          data?.createdby_lastname || ""
+        Name: `${data?.users__CreatedBy.FirstName || ""} ${
+          data?.users__CreatedBy.LastName || ""
         }`.trim(),
         Entity: "users",
       };
     }
-    if (f === "modifiedby") {
+    if (f === "users__modifiedby") {
       return {
         Id: value,
-        Name: `${data?.modifiedby_firstname || ""} ${
-          data?.modifiedby_lastname || ""
+        Name: `${data?.users__ModifiedBy.FirstName || ""} ${
+          data?.users__ModifiedBy.LastName || ""
         }`.trim(),
         Entity: "users",
       };
@@ -92,7 +90,7 @@ export const helperMethods = {
     if (f === "dealer") {
       return {
         Id: value,
-        Name: ` ${data?.dealer_Name || ""}`.trim(),
+        Name: ` ${data?.dealers__Dealer.Name || ""}`.trim(),
         Entity: "dealers",
       };
     }

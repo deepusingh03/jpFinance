@@ -5,23 +5,42 @@ import { useNavigate } from "react-router-dom";
 const SystemDetails = ({ data = {} }) => {
   const navigate = useNavigate();
 
+  // Handle case when data is an array (as in the JSON structure)
+  const recordData = Array.isArray(data) ? data[0] || {} : data;
+
+  // Extract data from the nested user objects
+  const createdByUser = recordData.users__CreatedBy || {};
+  const modifiedByUser = recordData.users__ModifiedBy || {};
+
   const systemFields = [
     {
       label: "Created By",
-      value: `${data.createdby_firstname || ""} ${data.createdby_lastname || ""}`.trim(),
+      value: createdByUser.FirstName && createdByUser.LastName 
+        ? `${createdByUser.FirstName} ${createdByUser.LastName}`.trim()
+        : createdByUser.Email || "—",
       name: "createdBy",
-      id: data.createdby_id,
+      id: recordData.CreatedBy || createdByUser.Id,
       isClickable: true,
     },
     {
       label: "Modified By",
-      value: `${data.modifiedby_firstname || ""} ${data.modifiedby_lastname || ""}`.trim(),
+      value: modifiedByUser.FirstName && modifiedByUser.LastName 
+        ? `${modifiedByUser.FirstName} ${modifiedByUser.LastName}`.trim()
+        : modifiedByUser.Email || "—",
       name: "modifiedBy",
-      id: data.modifiedby_id,
+      id: recordData.ModifiedBy || modifiedByUser.Id,
       isClickable: true,
     },
-    { label: "Created Date", value: data.CreatedDate, name: "createdDate" },
-    { label: "Modified Date", value: data.ModifiedDate, name: "modifiedDate" },
+    { 
+      label: "Created Date", 
+      value: recordData.CreatedDate || "—", 
+      name: "createdDate" 
+    },
+    { 
+      label: "Modified Date", 
+      value: recordData.ModifiedDate || "—", 
+      name: "modifiedDate" 
+    },
   ];
 
   const goToRecord = (id) => {
@@ -37,26 +56,29 @@ const SystemDetails = ({ data = {} }) => {
           <Col md={6} key={field.name}>
             <Form.Group className="mb-3">
               <Form.Label>{field.label}</Form.Label>
-              <Form.Control
-                name={field.name}
-                value={field.value || ""}
-                style={
-                  field.isClickable
-                    ? {
-                        cursor: "pointer",
-                        color: "#0d6efd",
-                        textDecoration: "underline",
-                        backgroundColor: "#e9ecef",
-                      }
-                    : {
-                        backgroundColor: "#e9ecef",
-                      }
-                }
-                onClick={() => {
-                  field.isClickable && goToRecord(field.id);
-                }}
-                readOnly
-              />
+              {field.isClickable && field.id ? (
+                <Form.Control
+                  name={field.name}
+                  value={field.value || ""}
+                  style={{
+                    cursor: "pointer",
+                    color: "#0d6efd",
+                    textDecoration: "underline",
+                    backgroundColor: "#e9ecef",
+                  }}
+                  onClick={() => goToRecord(field.id)}
+                  readOnly
+                />
+              ) : (
+                <Form.Control
+                  name={field.name}
+                  value={field.value || ""}
+                  style={{
+                    backgroundColor: "#e9ecef",
+                  }}
+                  readOnly
+                />
+              )}
             </Form.Group>
           </Col>
         ))}

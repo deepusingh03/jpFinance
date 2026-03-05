@@ -30,7 +30,7 @@ useEffect(()=>{
   async function fetchDealer() {
     try {
       setLoading(true);
-      const res = await fetch(`${apiData.PORT}/api/get/dealers/?Id=${id}`);
+      const res = await fetch(`${apiData.PORT}/api/get/dealers?Id=${id}`);
 
       const data = await res.json();
 
@@ -236,9 +236,7 @@ useEffect(()=>{
             <div className="col-md-6">
             <RecordLinkField
                 label="Created By"
-                id={dealer.createdby_id}
-                firstName={dealer.createdby_firstname}
-                lastName={dealer.createdby_lastname}
+                data={dealer.users__CreatedBy}
                 table="user"
               />
             </div>
@@ -246,9 +244,7 @@ useEffect(()=>{
             <div className="col-md-6">
             <RecordLinkField
                 label="Modified By"
-                id={dealer.modifiedby_id}
-                firstName={dealer.modifiedby_firstname}
-                lastName={dealer.modifiedby_lastname}
+                data={dealer.users__ModifiedBy}
                 table="user"
               />
             </div>

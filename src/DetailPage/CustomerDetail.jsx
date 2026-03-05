@@ -326,8 +326,7 @@ console.log(data,res);
                     <div className="col-md-12">
                       <RecordLinkField
                         label="Dealer"
-                        id={customer.dealer_id}
-                        firstName={customer.dealer_Name}
+                        data={customer.dealers__Dealer}
                         table="dealer"
                       />
                     </div>
@@ -366,9 +365,7 @@ console.log(data,res);
             <div className="col-md-6">
               <RecordLinkField
                 label="Created By"
-                id={customer.createdby_id}
-                firstName={customer.createdby_firstname}
-                lastName={customer.createdby_lastname}
+                data={customer.users__CreatedBy}
                 table="user"
               />
             </div>
@@ -376,9 +373,7 @@ console.log(data,res);
             <div className="col-md-6">
               <RecordLinkField
                 label="Modified By"
-                id={customer.modifiedby_id}
-                firstName={customer.modifiedby_firstname}
-                lastName={customer.modifiedby_lastname}
+                data={customer.users__ModifiedBy}
                 table="user"
               />
             </div>
