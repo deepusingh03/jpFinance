@@ -100,9 +100,9 @@ export default function BrandDetail({ isEdit, resetButton }) {
         return;
       }
 
-      toast.success(payload.Name+" was updated successfully.");
+      toast.success(payload.Name + " was updated successfully.");
       setEditMode(false);
-      resetButton()
+      resetButton();
       fetchBrand();
     } catch (e) {
       console.error(e);
@@ -119,16 +119,15 @@ export default function BrandDetail({ isEdit, resetButton }) {
   // FIELD RENDER HELPERS
   // ----------------------------
   const renderField = (label, name, options = {}) => {
-    const { editable = true, textarea = false,required = false  } = options;
+    const { editable = true, textarea = false, required = false } = options;
     const value = editMode ? form[name] : brand[name];
 
     return (
       <Form.Group className="mb-3">
-        <Form.Label className="fw-semibold"> 
-          {required && (
-            <span className="text-danger">* </span> 
-          )} 
-          {label}</Form.Label>
+        <Form.Label className="fw-semibold">
+          {required && <span className="text-danger">* </span>}
+          {label}
+        </Form.Label>
 
         {editMode && editable ? (
           <>
@@ -177,7 +176,6 @@ export default function BrandDetail({ isEdit, resetButton }) {
       <div className="card p-4 shadow-sm rounded-4">
         {/* HEADER */}
         <div className="d-flex justify-content-between mb-3">
-
           <h2 className="fw-bold">Brand Details</h2>
         </div>
 
@@ -188,7 +186,9 @@ export default function BrandDetail({ isEdit, resetButton }) {
           </h4>
 
           <div className="row">
-            <div className="col-md-6">{renderField("Name", "Name",{required:true})}</div>
+            <div className="col-md-6">
+              {renderField("Name", "Name", { required: true })}
+            </div>
             <div className="col-md-6">
               {renderField("Description", "Description", { textarea: true })}
             </div>
@@ -205,9 +205,7 @@ export default function BrandDetail({ isEdit, resetButton }) {
             <div className="col-md-6">
               <RecordLinkField
                 label="Created By"
-                id={brand.createdby_id}
-                firstName={brand.createdby_firstname}
-                lastName={brand.createdby_lastname}
+                data={brand.users__CreatedBy}
                 table="user"
               />
             </div>
@@ -215,9 +213,7 @@ export default function BrandDetail({ isEdit, resetButton }) {
             <div className="col-md-6">
               <RecordLinkField
                 label="Modified By"
-                id={brand.modifiedby_id}
-                firstName={brand.modifiedby_firstname}
-                lastName={brand.modifiedby_lastname}
+                data={brand.users__ModifiedBy}
                 table="user"
               />
             </div>

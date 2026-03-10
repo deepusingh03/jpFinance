@@ -26,6 +26,7 @@ const RecordRelatedList = ({ details }) => {
 
   // Fetch related data
   useEffect(() => {
+    console.log(':::',details)
     if (!details?.entity || !details?.parentField || !details?.Id) return;
 
     const fetchData = async () => {
@@ -97,7 +98,7 @@ const RecordRelatedList = ({ details }) => {
 
   // Cell click
   const handleCellClick = (col, row) => {
-    if (col === "Name" || col === "FirstName") {
+    if (col === "Name" || col === "FirstName" || col === "PricebookName") {
       navigate(`/details/childs/${details.entity}/${row.Id}/view`, {
         state: { row },
       });
@@ -144,16 +145,18 @@ const RecordRelatedList = ({ details }) => {
       <Table striped bordered hover size="sm">
         <thead className="table-light">
           <tr>
-            {filteredColumns.map(
-              (col) =>
-                !col.includes("_") && (
-                  <th
-                    key={col}
-                    style={{ whiteSpace: "nowrap", textAlign: "center" }}
-                  >
-                    {col}
-                  </th>
-                )
+            {filteredColumns.map((col) =>
+              !col.includes("_") &&
+              !(
+                details.entity === "pricebook" && col.toLowerCase() === "name"
+              ) ? (
+                <th
+                  key={col}
+                  style={{ whiteSpace: "nowrap", textAlign: "center" }}
+                >
+                  {col}
+                </th>
+              ) : null
             )}
           </tr>
         </thead>
@@ -163,22 +166,26 @@ const RecordRelatedList = ({ details }) => {
             <tr key={i}>
               {filteredColumns.map(
                 (col) =>
-                  !col.includes("_") && (
+                  !col.includes("_") &&
+                  !(
+                    details.entity === "pricebook" &&
+                    col.toLowerCase() === "name"
+                  ) && (
                     <td
                       key={col}
                       style={{
                         whiteSpace: "nowrap",
                         textAlign: "center",
                         cursor:
-                          col === "Name" || col === "FirstName"
+                          col === "Name" || col === "FirstName" || col === "PricebookName"
                             ? "pointer"
                             : "default",
                         color:
-                          col === "Name" || col === "FirstName"
+                          col === "Name" || col === "FirstName" || col === "PricebookName"
                             ? "#0d6efd"
                             : "",
                         textDecoration:
-                          col === "Name" || col === "FirstName"
+                          col === "Name" || col === "FirstName" || col === "PricebookName"
                             ? "underline"
                             : "none",
                       }}
@@ -206,8 +213,7 @@ const RecordRelatedList = ({ details }) => {
 
             {(details?.entity == "pricebook" ||
               details?.entity == "pricebookentry" ||
-              details?.entity == "documentversion") 
-              && (
+              details?.entity == "documentversion") && (
               <Button
                 variant="dark"
                 className="px-4 py-2 fw-semibold shadow-sm"

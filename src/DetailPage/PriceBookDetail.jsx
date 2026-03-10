@@ -153,7 +153,7 @@ export default function PricebookDetail({ isEdit, resetButton }) {
           <div className="row">
 
             <div className="col-md-6">
-              {renderField("Name", "Name", { editable: false ,required:true})}
+              {renderField("Pricebook Name", "PricebookName", { editable: false ,required:true})}
             </div>
 
             <div className="col-md-6">

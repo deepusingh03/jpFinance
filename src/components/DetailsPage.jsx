@@ -36,22 +36,13 @@ function DetailsPage({ data, onBack, childs, refresh, entityName }) {
   // Helpers
   // ---------------------------------------------------------
   const getDisplayName = () => {
+    if(entityName.toLowerCase() === "pricebook") return data.PricebookName;
     if (data?.Name) return data.Name;
+
     if (data?.FirstName || data?.LastName)
       return `${data.FirstName || ""} ${data.LastName || ""}`.trim();
     return "Record Details";
   };
-  // const buildImageURL = () => {
-  //   const currentURL = window.location;
-  //   const segments = currentURL.pathname.split("/");
-
-  //   if (segments?.[3] === "documents" && data?.Link) {
-  //     const host = currentURL.hostname.startsWith("192")
-  //       ? "jpfincorp.com"
-  //       : currentURL.hostname;
-
-  //   }
-  // };
   // ---------------------------------------------------------
   // Effects
   // ---------------------------------------------------------

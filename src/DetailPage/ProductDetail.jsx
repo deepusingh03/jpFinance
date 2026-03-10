@@ -9,9 +9,9 @@ import { apiData } from "../utility/api";
 
 // const API = 'https://jpfincorp.com';
 
-export default function ProductDetail({isEdit,resetButton}) {
+export default function ProductDetail({ isEdit, resetButton }) {
   const { id } = useParams();
-//   const navigate = useNavigate();
+  //   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [form, setForm] = useState({});
   const [editMode, setEditMode] = useState(false);
@@ -22,7 +22,7 @@ export default function ProductDetail({isEdit,resetButton}) {
   useEffect(() => {
     setEditMode(isEdit);
     if (isEdit) {
-        fetchProduct();
+      fetchProduct();
     }
   }, [isEdit]);
 
@@ -123,16 +123,20 @@ export default function ProductDetail({isEdit,resetButton}) {
   // FIELD RENDER HELPERS
   // ----------------------------
   const renderField = (label, name, options = {}) => {
-    const { editable = true, textarea = false, type = "text",required = false   } = options;
+    const {
+      editable = true,
+      textarea = false,
+      type = "text",
+      required = false,
+    } = options;
     const value = editMode ? form[name] : product[name];
 
     return (
       <Form.Group className="mb-3">
         <Form.Label className="fw-semibold">
-        {required && (
-            <span className="text-danger">* </span> 
-          )} 
-          {label}</Form.Label>
+          {required && <span className="text-danger">* </span>}
+          {label}
+        </Form.Label>
 
         {editMode && editable ? (
           <>
@@ -187,9 +191,13 @@ export default function ProductDetail({isEdit,resetButton}) {
           </h4>
 
           <div className="row">
-            <div className="col-md-6">{renderField("Name", "Name",{required:true})}</div>
+            <div className="col-md-6">
+              {renderField("Name", "Name", { required: true })}
+            </div>
             <div className="col-md-6">{renderField("Code", "Code")}</div>
-            <div className="col-md-6">{renderField("CC Power", "CCPower",{required:true})}</div>
+            <div className="col-md-6">
+              {renderField("CC Power", "CCPower", { required: true })}
+            </div>
             <div className="col-md-6">
               {renderField("Model Month", "ModelMonth", { type: "number" })}
             </div>
@@ -214,12 +222,14 @@ export default function ProductDetail({isEdit,resetButton}) {
               <Form.Group className="mb-3">
                 {editMode ? (
                   <>
-                    <Form.Label className="fw-semibold"><span className="text-danger">* </span> Brand</Form.Label>
+                    <Form.Label className="fw-semibold">
+                      <span className="text-danger">* </span> Brand
+                    </Form.Label>
                     <LookupField
                       value={{ Id: form.Brand }}
                       entityName="brands"
                       placeholder="Search Brands"
-                      isInvalid = {errors.Brand}
+                      isInvalid={errors.Brand}
                       onSelect={(record) => {
                         setForm({
                           ...form,
@@ -236,11 +246,9 @@ export default function ProductDetail({isEdit,resetButton}) {
                 ) : (
                   <div className="col-md-12">
                     <RecordLinkField
-                    isRequired = "true"
                       label="Brand"
-                      id={product.brand_id}
-                      firstName={product.brand_Name}
-                      table="brand"
+                      data={product.brands__Brand}
+                      table="brands"
                     />
                   </div>
                 )}
@@ -259,9 +267,7 @@ export default function ProductDetail({isEdit,resetButton}) {
             <div className="col-md-6">
               <RecordLinkField
                 label="Created By"
-                id={product.createdby_id}
-                firstName={product.createdby_firstname}
-                lastName={product.createdby_lastname}
+                data={product.users__CreatedBy}
                 table="user"
               />
             </div>
@@ -269,13 +275,10 @@ export default function ProductDetail({isEdit,resetButton}) {
             <div className="col-md-6">
               <RecordLinkField
                 label="Modified By"
-                id={product.modifiedby_id}
-                firstName={product.modifiedby_firstname}
-                lastName={product.modifiedby_lastname}
+                data={product.users__ModifiedBy}
                 table="user"
               />
             </div>
-
             <div className="col-md-6">
               {renderField("Created Date", "CreatedDate", { editable: false })}
             </div>

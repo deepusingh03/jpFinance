@@ -15,6 +15,7 @@ export const helperMethods = {
   async fetchUserDetails (){
     const user = JSON.parse(localStorage.getItem("userData"));
     if (!user || !user.user || !user.user.Id) return;
+    console.log('user ::',user);
     const response = await fetch(`${apiData.PORT}/api/get/users?Id=${user.user.Id}`);
     const responseResult = await response.json();
     if(!responseResult.success || !responseResult.data )return
@@ -78,7 +79,7 @@ export const helperMethods = {
         Entity: "users",
       };
     }
-    if (f === "users__modifiedby") {
+    if (f === "modifiedby") {
       return {
         Id: value,
         Name: `${data?.users__ModifiedBy.FirstName || ""} ${
@@ -97,7 +98,7 @@ export const helperMethods = {
     if (f === "brand") {
       return {
         Id: value,
-        Name: ` ${data?.brand_Name || ""}`.trim(),
+        Name: ` ${data?.brands__Brand.Name || ""}`.trim(),
         Entity: "brands",
       };
     }
@@ -141,7 +142,7 @@ export const helperMethods = {
     if (f === "model") {
       return {
         Id: value,
-        Name: ` ${data?.model_Name || ""}`.trim(),
+        Name: ` ${data?.products__Product.Name || ""}`.trim(),
         Entity: "products",
       };
     }
@@ -156,7 +157,7 @@ export const helperMethods = {
     if (f === "product") {
       return {
         Id: value,
-        Name: ` ${data?.product_Name || ""}`.trim(),
+        Name: ` ${data?.products__Product.Name || ""}`.trim(),
         Entity: "products",
       };
     }

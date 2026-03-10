@@ -44,7 +44,7 @@ export const objectFields = {
     "ModelMonth",
     "ModelYear",
     "Description",
-    "BrandId",
+    "Brand",
   ],
   loans: [
     "Dealer",
@@ -102,5 +102,5 @@ export const objectFields = {
     "Description",
   ],
   pricebookentry: ["Pricebook", "Isactive", "Unitprice", "Product"],
-  pricebook: ["Dealer","IsActive"],
+  pricebook: ["Dealer", "PricebookName", "IsActive"],
 };

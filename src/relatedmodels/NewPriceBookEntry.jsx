@@ -19,12 +19,12 @@ function NewPriceBookEntry({ show, onHide, record, success }) {
       ? {
           Pricebook: record.data.Id,
           PricebookName: record.data.Name,
-          isProbook: true
+          isProbook: true,
         }
       : {
           Product: record.data.Id,
           ProductName: record.data.Name,
-          isProduct:true
+          isProduct: true,
         }
   );
   const [formErrors, setFormErrors] = useState({});
@@ -47,10 +47,7 @@ function NewPriceBookEntry({ show, onHide, record, success }) {
   };
   const validateForm = () => {
     const errors = {};
-    const requiredFields = [
-      "Product",
-      "Unitprice",
-    ];
+    const requiredFields = ["Product", "Unitprice"];
 
     requiredFields.forEach((field) => {
       if (!formData[field]) {
@@ -71,8 +68,10 @@ function NewPriceBookEntry({ show, onHide, record, success }) {
       toast.error("Please complete all required fields.");
       return;
     }
-    if (!await checkPricebookEntry()) {
-      toast.warning("Only one active Price Book Entry is allowed per Product and Price Book.");
+    if (!(await checkPricebookEntry())) {
+      toast.warning(
+        "Only one active Price Book Entry is allowed per Product and Price Book."
+      );
       return;
     }
     setLoading(true);
@@ -80,10 +79,11 @@ function NewPriceBookEntry({ show, onHide, record, success }) {
       const newRecord = {
         ...formData,
         Id: generateId(),
-        CreatedBy : helperMethods.fetchUser(),
-        CreatedDate : helperMethods.dateToString(),
-        ModifiedBy : helperMethods.fetchUser(),
-        ModifiedDate : helperMethods.dateToString(),
+        isactive:true,
+        CreatedBy: helperMethods.fetchUser(),
+        CreatedDate: helperMethods.dateToString(),
+        ModifiedBy: helperMethods.fetchUser(),
+        ModifiedDate: helperMethods.dateToString(),
       };
 
       const res = await fetch(`${apiData.PORT}/api/pricebookentry/insert`, {
@@ -114,16 +114,19 @@ function NewPriceBookEntry({ show, onHide, record, success }) {
     }
   };
 
-  const checkPricebookEntry = async()=>{
-    if(formData.Pricebook && formData.Product){
-      const res = await fetch(`${apiData.PORT}/api/get/pricebookentry?Pricebook=${formData.Pricebook}&Product=${formData.Product}`);
-      if(!res.ok) return true
+  const checkPricebookEntry = async () => {
+    if (formData.Pricebook && formData.Product) {
+      const res = await fetch(
+        `${apiData.PORT}/api/get/pricebookentry?Pricebook=${formData.Pricebook}&Product=${formData.Product}`
+      );
+      if (!res.ok) return true;
       const data = await res.json();
-      if(!data && data.data.length > 0){
+      if (data.success == true && data.data.length == 0) return true;
+      if (!data && data.data.length > 0) {
         return false;
       }
     }
-  }
+  };
   return (
     <>
       <Modal
@@ -135,8 +138,8 @@ function NewPriceBookEntry({ show, onHide, record, success }) {
         size="lg"
       >
         <Modal.Header closeButton>
-        <Modal.Title className="w-100 text-center">
-          New PriceBookEntry
+          <Modal.Title className="w-100 text-center">
+            New PriceBookEntry
           </Modal.Title>
         </Modal.Header>
 
@@ -145,7 +148,9 @@ function NewPriceBookEntry({ show, onHide, record, success }) {
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label><span className="text-danger">*</span> PriceBook</Form.Label>
+                  <Form.Label>
+                    <span className="text-danger">*</span> PriceBook
+                  </Form.Label>
                   <LookupField
                     value={{ Id: formData.Pricebook }}
                     entityName={`pricebook`}
@@ -163,7 +168,9 @@ function NewPriceBookEntry({ show, onHide, record, success }) {
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label><span className="text-danger">*</span> Product</Form.Label>
+                  <Form.Label>
+                    <span className="text-danger">*</span> Product
+                  </Form.Label>
                   <LookupField
                     value={{ Id: formData.Product }}
                     entityName={`products`}
@@ -178,7 +185,6 @@ function NewPriceBookEntry({ show, onHide, record, success }) {
                       })
                     }
                   />
-                 
                 </Form.Group>
               </Col>
             </Row>
@@ -186,7 +192,9 @@ function NewPriceBookEntry({ show, onHide, record, success }) {
               <Col md={6}>
                 {/* Conditional LookupField */}
                 <Form.Group className="mb-3">
-                  <Form.Label><span className="text-danger">*</span> Unit Price</Form.Label>
+                  <Form.Label>
+                    <span className="text-danger">*</span> Unit Price
+                  </Form.Label>
                   <Form.Control
                     type="number"
                     name="Name"
@@ -201,9 +209,9 @@ function NewPriceBookEntry({ show, onHide, record, success }) {
                       });
                     }}
                   />
-                   <Form.Control.Feedback type="invalid">
-                      {formErrors.Unitprice}
-                    </Form.Control.Feedback>
+                  <Form.Control.Feedback type="invalid">
+                    {formErrors.Unitprice}
+                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
               {/* <Col md={6}>
@@ -240,7 +248,6 @@ function NewPriceBookEntry({ show, onHide, record, success }) {
           </Form>
         </Modal.Body>
       </Modal>
-
     </>
   );
 }
