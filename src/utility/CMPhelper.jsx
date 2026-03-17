@@ -106,35 +106,35 @@ export const helperMethods = {
     if (f === "agent") {
       return {
         Id: value,
-        Name: ` ${data?.agent_firstname || ""} ${data?.agent_lastname || ""}`.trim(),
+        Name: ` ${data?.customers__Agent.FirstName || ""} ${data?.customers__Agent.LastName || ""}`.trim(),
         Entity: "customers",
       };
     }
     if (f === "hirer") {
       return {
         Id: value,
-        Name: ` ${data?.hirer_firstname || ""} ${data?.hirer_lastname || ""}`.trim(),
+        Name: ` ${data?.customers__Hirer.FirstName || ""} ${data?.customers__Hirer.LastName || ""}`.trim(),
         Entity: "customers",
       };
     }
     if (f === "guarantor") {
       return {
         Id: value,
-        Name: ` ${data?.guarantor_firstname || ""} ${data?.guarantor_lastname || ""}`.trim(),
+        Name: ` ${data?.customers__Guarantor.FirstName || ""} ${data?.customers__Guarantor.LastName || ""}`.trim(),
         Entity: "customers",
       };
     }
     if (f === "referrer1") {
       return {
         Id: value,
-        Name: ` ${data?.referrer1_firstname || ""} ${data?.referrer1_lastname || ""}`.trim(),
+        Name: ` ${data?.customers__Referrer1.FirstName || ""} ${data?.customers__Referrer1.LastName || ""}`.trim(),
         Entity: "customers",
       };
     }
     if (f === "referrer2") {
       return {
         Id: value,
-        Name: ` ${data?.referrer2_firstname || ""} ${data?.referrer2_lastname || ""}`.trim(),
+        Name: ` ${data?.customers__Referrer2.FirstName || ""} ${data?.customers__Referrer2.LastName || ""}`.trim(),
         Entity: "customers",
       };
     }
@@ -142,7 +142,7 @@ export const helperMethods = {
     if (f === "model") {
       return {
         Id: value,
-        Name: ` ${data?.products__Product.Name || ""}`.trim(),
+        Name: ` ${data?.products__Model.Name || ""}`.trim(),
         Entity: "products",
       };
     }

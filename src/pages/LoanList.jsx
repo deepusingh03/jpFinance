@@ -53,13 +53,23 @@ export default function LoanPortal() {
 
   useEffect(() => {
     const statuses = FILTERS[activeTab];
-    const filteredLoans = loans.filter(
-      (l) =>
-        statuses.includes(l.UMRNStatus) &&
-        Object.values(l).join(" ").toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredLoans = loans.filter((l) => {
+      const status = (l.UMRNStatus || "").toLowerCase();
+
+      const statusMatch = statuses.map((s) => s.toLowerCase()).includes(status);
+
+      const searchText = (search ?? "").toLowerCase();
+
+      const rowText = Object.values(l)
+        .map((v) => String(v ?? ""))
+        .join(" ")
+        .toLowerCase();
+
+      return statusMatch && rowText.includes(searchText);
+    });
     setFiltered(filteredLoans);
     setSelected(new Set());
+    // setLoading(false);
   }, [activeTab, loans, search]);
 
   async function fetchLoans() {
@@ -69,7 +79,7 @@ export default function LoanPortal() {
         `${apiData.PORT}/api/get/joindata/loans-with-customers?sheetName=${sheetName}`
       );
       const data = await res.json();
-      data.data.forEach((ele) => ele.action = 'CREATE')
+      data.data.forEach((ele) => (ele.action = "CREATE"));
       setLoans(data.data || []);
     } catch (err) {
       toast.error("Error fetching loans: " + err);
@@ -165,13 +175,13 @@ export default function LoanPortal() {
     [navigate]
   );
   const handleTabChenge = (props) => {
-    if (props === 'pending') {
-      setIsCheckboxShow(true)
+    if (props === "pending") {
+      setIsCheckboxShow(true);
     } else {
-      setIsCheckboxShow(false)
+      setIsCheckboxShow(false);
     }
-    setActiveTab(props)
-  }
+    setActiveTab(props);
+  };
   const onSelectall = (props) => {
     const newSet = new Set(selected);
     if (props.target.checked) {

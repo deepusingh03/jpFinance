@@ -547,13 +547,13 @@ export default function LoanDetail({ isEdit, resetButton }) {
                     </>
                   ) : (
                     <div>
-                      <RecordLinkField
-                        isRequired="true"
-                        label="Dealer"
-                        id={loan.dealer_id}
-                        firstName={loan.dealer_Name}
-                        table="dealer"
-                      />
+
+<RecordLinkField
+                label="Dealer"
+                data={loan.dealers__Dealer}
+                table="dealer"
+              />
+                     
                     </div>
                   )}
                 </Form.Group>
@@ -582,14 +582,13 @@ export default function LoanDetail({ isEdit, resetButton }) {
                     </>
                   ) : (
                     <div>
-                      <RecordLinkField
-                        isRequired="true"
-                        label="Agent"
-                        id={loan.agent_id}
-                        firstName={loan.agent_firstname}
-                        lastName={loan.agent_lastname}
-                        table="customer"
-                      />
+
+<RecordLinkField
+                label="Agent"
+                data={loan.customers__Agent}
+                table="customer"
+              />
+                    
                     </div>
                   )}
                 </Form.Group>
@@ -652,13 +651,13 @@ export default function LoanDetail({ isEdit, resetButton }) {
                     </>
                   ) : (
                     <div>
-                      <RecordLinkField
-                        isRequired="true"
-                        label="Model"
-                        id={loan.model_id}
-                        firstName={loan.model_Name}
-                        table="product"
-                      />
+
+<RecordLinkField
+                label="Model"
+                data={loan.products__Model}
+                table="product"
+              />
+                     
                     </div>
                   )}
                 </Form.Group>
@@ -1258,13 +1257,12 @@ export default function LoanDetail({ isEdit, resetButton }) {
                     </>
                   ) : (
                     <div>
-                      <RecordLinkField
-                        label="Hirer"
-                        id={loan.hirer_id}
-                        firstName={loan.hirer_firstname}
-                        lastName={loan.hirer_lastname}
-                        table="customer"
-                      />
+
+<RecordLinkField
+                label="Hirer"
+                data={loan.customers__Hirer}
+                table="customer"
+              />
                     </div>
                   )}
                   {errors.Hirer && (
@@ -1294,13 +1292,13 @@ export default function LoanDetail({ isEdit, resetButton }) {
                     </>
                   ) : (
                     <div>
-                      <RecordLinkField
-                        label="Guarantor"
-                        id={loan.guarantor_id}
-                        firstName={loan.guarantor_firstname}
-                        lastName={loan.guarantor_lastname}
-                        table="customer"
-                      />
+
+<RecordLinkField
+                label="Guarantor"
+                data={loan.customers__Guarantor}
+                table="customer"
+              />
+
                     </div>
                   )}
                   {errors.Guarantor && (
@@ -1333,12 +1331,11 @@ export default function LoanDetail({ isEdit, resetButton }) {
                   ) : (
                     <div>
                       <RecordLinkField
-                        label="Referrer 1"
-                        id={loan.referrer1_id}
-                        firstName={loan.referrer1_firstname}
-                        lastName={loan.referrer1_lastname}
-                        table="customer"
-                      />
+                label="Referrer 1"
+                data={loan.customers__Referrer1}
+                table="customer"
+              />
+                      
                     </div>
                   )}
                   {errors.Referrer1 && (
@@ -1370,13 +1367,13 @@ export default function LoanDetail({ isEdit, resetButton }) {
                     </>
                   ) : (
                     <div>
-                      <RecordLinkField
-                        label="Referrer 2"
-                        id={loan.referrer2_id}
-                        firstName={loan.referrer2_firstname}
-                        lastName={loan.referrer2_lastname}
-                        table="customer"
-                      />
+
+<RecordLinkField
+                label="Referrer 2"
+                data={loan.customers__Referrer2}
+                table="customers"
+              />
+                      
                     </div>
                   )}
                   {errors.Referrer2 && (
@@ -1619,24 +1616,21 @@ export default function LoanDetail({ isEdit, resetButton }) {
               <i className="bi bi-clock-history me-2"></i>System Information
             </h4>
             <div className="row">
-              <div className="col-md-6">
-                <RecordLinkField
-                  label="Created By"
-                  id={loan.createdby_id}
-                  firstName={loan.createdby_firstname}
-                  lastName={loan.createdby_lastname}
-                  table="user"
-                />
-              </div>
-              <div className="col-md-6">
-                <RecordLinkField
-                  label="Modified By"
-                  id={loan.modifiedby_id}
-                  firstName={loan.modifiedby_firstname}
-                  lastName={loan.modifiedby_lastname}
-                  table="user"
-                />
-              </div>
+            <div className="col-md-6">
+              <RecordLinkField
+                label="Created By"
+                data={loan.users__CreatedBy}
+                table="user"
+              />
+            </div>
+
+            <div className="col-md-6">
+              <RecordLinkField
+                label="Modified By"
+                data={loan.users__ModifiedBy}
+                table="user"
+              />
+            </div>
               <div className="col-md-6">
                 {renderField("Created Date", "CreatedDate", {
                   editable: false,

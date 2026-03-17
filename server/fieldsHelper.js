@@ -100,7 +100,13 @@ export const objectFields = {
     "ChequeNumber4",
     "ChequeNumber5",
     "Description",
+    "UMRNStatus"
   ],
   pricebookentry: ["Pricebook", "Isactive", "Unitprice", "Product"],
   pricebook: ["Dealer", "PricebookName", "IsActive"],
+  loandefaultvalue:["Type","Value"],
+  documents:["Name","Version","ParentId"],
+  banks:["Name","Description"],
+  insurancecompanies:["Name","Description"],
+  users:["FirstName","LastName","Email","Phone","Password"]
 };

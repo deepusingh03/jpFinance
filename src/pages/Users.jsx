@@ -171,7 +171,7 @@ export default function Users() {
         ModifiedDate: helperMethods.dateToString(),
       };
 
-      const res = await fetch(`${apiData.PORT}/api/user/insert`, {
+      const res = await fetch(`${apiData.PORT}/api/users/insert`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

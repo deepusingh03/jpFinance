@@ -103,7 +103,7 @@ const DocumentPreview = ({ data }) => {
                 <div className="document-info">
                   <h4 className="document-name">{doc.Name}</h4>
                   <div className="document-meta">
-                    <span>{(doc.Size / 1024).toFixed(1)} KB</span>
+                    <span>{(doc.FileSize / 1024).toFixed(1)} KB</span>
                     <span className="divider">•</span>
                     <span>{doc.ModifiedDate}</span>
                   </div>
@@ -130,22 +130,22 @@ const DocumentPreview = ({ data }) => {
               <div className="preview-header">
                 <h5>{selectedDocument.Name}</h5>
                 <span>
-                  {(selectedDocument.Size / 1024).toFixed(1)} KB • Modified{" "}
+                  {(selectedDocument.FileSize / 1024).toFixed(1)} KB • Modified{" "}
                   {selectedDocument.ModifiedDate}
                 </span>
               </div>
 
               <div className="preview-content">
-                {selectedDocument.Link.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                {selectedDocument.FilePath.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                   <img
-                    src={`${apiData.PORT}/documents/${selectedDocument.Link}`}
+                    src={`${apiData.PORT}/${selectedDocument.FilePath}`}
                     alt={selectedDocument.Name}
                     className="image-preview"
                   />
                 ) : (
                   <iframe
                     title="document-preview"
-                    src={`${apiData.PORT}/documents/${selectedDocument.Link}`}
+                    src={`${apiData.PORT}/${selectedDocument.FilePath}`}
                     className="file-preview"
                   />
                 )}

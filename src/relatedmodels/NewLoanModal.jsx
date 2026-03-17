@@ -22,6 +22,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
   const [newLoan, setnewLoan] = useState(getEmptyLoan());
   const [defaultLoansValues, setDefaultLoansValues] = useState(null);
   useEffect(() => {
+    console.log('documentData :: ',documentData);
     if (record) {
       if (record && record.Model) {
         const option = {
@@ -265,10 +266,11 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
       `${apiData.PORT}/api/fetch/pricebook-product/${newLoan.Dealer}`
     );
     const responseResult = await response.json();
+    console.log("responseResult :: ",responseResult)
     const records = responseResult?.data ?? [];
     const options = records.map((record) => ({
-      value: record.Product,
-      label: record.ProductName,
+      value: record.Id,
+      label: record.Name,
       data: record,
     }));
 
@@ -405,7 +407,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
             (element.CreatedBy = helperMethods.fetchUser()),
             (element.CreatedDate = helperMethods.dateToString());
         });
-        const res = await fetch(`${apiData.PORT}/api/loanitems/insert`, {
+        const res = await fetch(`${apiData.PORT}/api/child/loanitems/insert`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(emiDetails),
@@ -431,11 +433,12 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
     try {
       // Create a new array instead of mutating imported data
       const payload = documentData.map((ele) => ({
+        Id: generateId(),
         ...ele,
         ParentId: newLoan.Id,
-        Id: generateId(),
       }));
-      const res = await fetch(`${apiData.PORT}/api/documents/insert`, {
+      console.log('payload ::',payload)
+      const res = await fetch(`${apiData.PORT}/api/child/documents/insert`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

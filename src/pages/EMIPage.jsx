@@ -12,6 +12,7 @@ import {
 
 import CustomNavbar from "../components/CustomNavbar";
 import CustomTable from "../components/CustomTable";
+import { apiData } from "../utility/api";
 
 // EMI Table Columns
 const EMI_COLUMNS = [
@@ -48,7 +49,7 @@ export default function EMIPage() {
   async function fetchEmis() {
     setLoading(true);
     try {
-      const res = await fetch("https://jpfincorp.com/api/emis/get");
+      const res = await fetch(`${apiData.PORT}/api/emis/get`);
       var data = await res.json();
       console.log(data);
       data.data.forEach((element)=>{
@@ -74,7 +75,7 @@ export default function EMIPage() {
 
   try {
     const response = await fetch(
-      "https://jpfincorp.com/api/download-emi",
+      `${apiData.PORT}/api/download-emi`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -1,5 +1,5 @@
 // components/UploadModal.jsx
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Modal,
   Button,
@@ -30,7 +30,9 @@ const UploadDocumentVersion = ({
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
   const fileInputRef = useRef(null);
-
+  useEffect(() => {
+    console.log('parentData :::::',parentData);
+  })
   // File type icons mapping
   const fileIcons = {
     pdf: "bi-filetype-pdf text-danger",
@@ -166,7 +168,7 @@ const UploadDocumentVersion = ({
 
       // ---- metadata ----
       formData.append("Id", generateId());
-      formData.append("LoanName", parentData?.Loan_Name || "");
+      formData.append("LoanName", parentData?.loans__ParentId.Name || "");
       formData.append("ParentDocument", parentData?.Id || "");
       formData.append("DocumentName", parentData?.Name || "");
       formData.append("Name", fileName || file.file.name);
@@ -178,11 +180,11 @@ const UploadDocumentVersion = ({
 
       // ---- file (IMPORTANT FIX) ----
       formData.append("file", file.file); // 👈 must be file.file
-      const res = await fetch(`${apiData.PORT}/api/documentversion/insert`, {
+      const res = await fetch(`${apiData.PORT}/api/upload/documentversion/insert`, {
         method: "POST",
         body: formData,
       });
-
+      console.log('Documents :: ',formData);
       const result = await res.json();
       if (!result.success) throw new Error(result.message);
 
