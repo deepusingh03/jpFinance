@@ -63,19 +63,6 @@ function NewDealerModal({ show, handleClose, fetchDealers, record, newData }) {
     let obj = {
       ...newDealer,
     };
-    // if (postalCode && postalCode != null) {
-    //   const res = await helperMethods.getEntityDetails(`addresses?PostalCode=${postalCode}`
-    //   );
-    //   const data = await res.json();
-    //   if (data && data.data && data.data.length > 0) {
-    //     const address = data.data[0];
-    //     obj.District = address.District;
-    //     obj.City = address.CIty;
-    //   } else {
-    //     obj.District = "";
-    //     obj.City = "";
-    //   }
-    // }
     obj.PinCode = postalCode;
     setNewDealer(obj);
   };
