@@ -38,49 +38,51 @@ export default function LoanDetail({ isEdit, resetButton }) {
   }, [isEdit]);
 
   // reactive calculations
-  useEffect(() => {
-    if (!loan) return;
-    if (loan.Dealer != null) {
-      getProductModels()
+
+  // In fetchLoan - fix initialization
+async function fetchLoan() {
+  try {
+    setLoading(true);
+    const data = await helperMethods.getEntityDetails(`loans?Id=${id}`);
+    
+    if (!data || data.length === 0) {
+      toast.error(data.error || "Failed to load loan");
+      setLoan(null);
+      return;
     }
-  }, [loan?.Dealer]);
-
-
-  async function fetchLoan() {
-    try {
-      setLoading(true);
-      const res = await fetch(`${apiData.PORT}/api/get/loans?Id=${id}`);
-      const data = await res.json();
-
-      if (!res.ok || !data.data || data.data.length === 0) {
-        toast.error(data.error || "Failed to load loan");
-        setLoan(null);
-        return;
-      }
-
-      const record = data.data[0];
-      if (record && record.Model) {
-        const option = {
-          value: record.Model,
-          label: record.model_Name,
-          data: record,
-        };
-
-        record.ModelId = option;
-      }
-      setLoan(record);
-      calculateEMIs(record);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load loan");
-    } finally {
-      setLoading(false);
+    
+    const record = data[0];
+    
+    // Fix: Properly set the Model object for react-select
+    if (record && record.Model) {
+      const option = {
+        value: record.Model,
+        label: record.products__Model.Name || record.Model, // Fallback to ID if no name
+        // data: record,
+      };
+      record.Model = option;  // Store full option for react-select
     }
+    
+    setLoan(record);
+    calculateEMIs(record);
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to load loan");
+  } finally {
+    setLoading(false);
   }
+}
 
   useEffect(() => {
     fetchLoan();
   }, [id]);
+
+  useEffect(() => {
+    if (!loan) return;
+    if (loan.Dealer != null) {
+      getProductModels();
+    }
+  }, [loan?.Dealer]);
 
   const handleTotalAmountChange = (props) => {
     setIsProgrammaticChange(true); // Set flag to true
@@ -95,7 +97,7 @@ export default function LoanDetail({ isEdit, resetButton }) {
       (updatedApp.DisburseAmount *
         updatedApp.RateOfInterest *
         updatedApp.Tenure) /
-      (100 * 12);
+        (100 * 12);
 
     updatedApp.EMIAmount = Math.ceil(
       updatedApp.RemainingAmountWithInterest / updatedApp.Tenure
@@ -107,7 +109,6 @@ export default function LoanDetail({ isEdit, resetButton }) {
     // Pass the new data directly so it's accurate
     calculateEMIs(updatedApp);
   };
-
 
   const handleDownPaymentChange = (props) => {
     setIsProgrammaticChange(true); // Set flag to true
@@ -121,7 +122,7 @@ export default function LoanDetail({ isEdit, resetButton }) {
       (updatedApp.DisburseAmount *
         updatedApp.RateOfInterest *
         updatedApp.Tenure) /
-      (100 * 12);
+        (100 * 12);
 
     updatedApp.EMIAmount = Math.ceil(
       updatedApp.RemainingAmountWithInterest / updatedApp.Tenure
@@ -237,75 +238,105 @@ export default function LoanDetail({ isEdit, resetButton }) {
     setEMIDetails(emiList);
   };
 
-  const getAmountDetails = (option) => {
-    if (!loan.Dealer || !option) {
-      console.warn("Dealer or Model not selected");
-      return;
-    }
+  // In getAmountDetails - fix model setting
+const getAmountDetails = (option) => {
+  if (!loan.Dealer || !option) {
+    console.warn("Dealer or Model not selected");
+    return;
+  }
 
-    try {
-      const unitPrice = Number(option.data?.UnitPrice) || 0;
+  try {
+    const unitPrice = Number(option.data?.UnitPrice) || 0;
+    const downPayment = unitPrice * 0.3;
+    const disburseAmount = unitPrice - downPayment;
+    const rate = 15;
+    const tenure = 12;
+    const remainingAmount = disburseAmount + (disburseAmount * rate * tenure) / (100 * 12);
+    const emiAmount = Math.ceil(remainingAmount / tenure);
 
-      const downPayment = unitPrice * 0.3;
-      const disburseAmount = unitPrice - downPayment;
+    const updatedApp = {
+      ...loan,
+      Tenure: tenure,
+      TotalPrice: unitPrice,
+      Unitprice: unitPrice,
+      DownPayment: downPayment,
+      DisburseAmount: disburseAmount,
+      RemainingAmountWithInterest: remainingAmount,
+      EMIAmount: emiAmount,
+      CCPower: option.data?.CCPower,
+      Model: option,  // Store full option object for react-select
+      ModelId: option.value,  // Store ID separately
+      ModelName: option.label,
+      RateOfInterest: rate,
+      DefaultValues: true,
+    };
 
-      const rate = 15;
-      const tenure = 12;
-
-      const remainingAmount =
-        disburseAmount + (disburseAmount * rate * tenure) / (100 * 12);
-
-      const emiAmount = Math.ceil(remainingAmount / tenure);
-
-      const updatedApp = {
-        ...loan,
-        Tenure: tenure,
-        TotalPrice: unitPrice,
-        Unitprice: unitPrice,
-        DownPayment: downPayment,
-        DisburseAmount: disburseAmount,
-        RemainingAmountWithInterest: remainingAmount,
-        EMIAmount: emiAmount,
-
-        CCPower: option.data?.CCPower,
-        Model: option.value,
-        ModelId: option,
-        ModelName: option.label,
-        RateOfInterest: rate,
-        DefaultValues: true,
-      };
-
-      setLoan(updatedApp);
-      calculateEMIs(updatedApp);
-
-    } catch (err) {
-      console.error("Error fetching data:", err);
-    }
-  };
-
+    setLoan(updatedApp);
+    calculateEMIs(updatedApp);
+  } catch (err) {
+    console.error("Error fetching data:", err);
+  }
+};
 
   const getProductModels = async () => {
-    setIsProgrammaticChange(true);
-    setLoan({
-      ...loan,
-      Model: "",
-      ModelId: "",
-      ModelName: "",
-    });
-    setProducts([]);
-    if (loan.Dealer) {
+    try {
+      setIsProgrammaticChange(true);
+  
+      // Reset model-related fields
+      setLoan((prev) => ({
+        ...prev,
+        Model: "",
+        ModelId: "",
+        ModelName: "",
+      }));
+  
+      setProducts([]);
+  
+      if (!loan.Dealer) return;
+  
       const response = await fetch(
         `${apiData.PORT}/api/fetch/pricebook-product/${loan.Dealer}`
       );
+  
       const responseResult = await response.json();
-      const records =
-        responseResult && responseResult.data ? responseResult.data : [];
+  
+      console.log("API response :::", responseResult);
+  
+      // ✅ Safety checks
+      if (
+        !responseResult ||
+        !responseResult.data ||
+        responseResult.data.length === 0
+      ) {
+        setProducts([]);
+        return;
+      }
+  
+      // ✅ Ensure records is always an array
+      let records = responseResult.data;
+  
+      // If API accidentally returns object instead of array
+      if (!Array.isArray(records)) {
+        records = [records];
+      }
+  
+      console.log("records :::", records);
+  
+      // ✅ Convert to select options (ARRAY)
       const options = records.map((record) => ({
-        value: record.Product,
-        label: record.ProductName,
+        value: record.Id,
+        label: record.Name,
         data: record,
       }));
+  
+      console.log("options :::", options);
+  
       setProducts(options);
+    } catch (error) {
+      console.error("Error fetching product models:", error);
+      setProducts([]);
+    } finally {
+      setIsProgrammaticChange(false);
     }
   };
   // ----------------------------
@@ -369,11 +400,17 @@ export default function LoanDetail({ isEdit, resetButton }) {
         EMIEndDate: loan.EMIEndDate?.toString().split("T")[0],
         NOCDate: loan.NOCDate?.toString().split("T")[0],
       };
-
+      const cleaned = Object.fromEntries(
+        // eslint-disable-next-line no-unused-vars
+        Object.entries(payload).filter(([key, value]) => {
+          return typeof value !== "object" || value === null;
+        })
+      );
+      console.log("cleaned :: ", cleaned);
       const res = await fetch(`${apiData.PORT}/api/loans/update`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(cleaned),
       });
 
       const data = await res.json();
@@ -514,7 +551,9 @@ export default function LoanDetail({ isEdit, resetButton }) {
                   />
                 </Form.Group>
               </div>
-              <div className="col-md-3">{renderField("Rejected Reason", "RejectedReason")}</div>
+              <div className="col-md-3">
+                {renderField("Rejected Reason", "RejectedReason")}
+              </div>
             </div>
           </section>
 
@@ -527,7 +566,10 @@ export default function LoanDetail({ isEdit, resetButton }) {
                 <Form.Group className="mb-3">
                   {editMode ? (
                     <>
-                      <Form.Label className="fw-semibold"> <span className="text-danger">* </span>Dealer</Form.Label>
+                      <Form.Label className="fw-semibold">
+                        {" "}
+                        <span className="text-danger">* </span>Dealer
+                      </Form.Label>
                       <LookupField
                         value={{ Id: loan.Dealer }}
                         entityName="dealers"
@@ -547,13 +589,11 @@ export default function LoanDetail({ isEdit, resetButton }) {
                     </>
                   ) : (
                     <div>
-
-<RecordLinkField
-                label="Dealer"
-                data={loan.dealers__Dealer}
-                table="dealer"
-              />
-                     
+                      <RecordLinkField
+                        label="Dealer"
+                        data={loan.dealers__Dealer}
+                        table="dealer"
+                      />
                     </div>
                   )}
                 </Form.Group>
@@ -563,7 +603,9 @@ export default function LoanDetail({ isEdit, resetButton }) {
                 <Form.Group className="mb-3">
                   {editMode ? (
                     <>
-                      <Form.Label className="fw-semibold"><span className="text-danger">* </span>Agent</Form.Label>
+                      <Form.Label className="fw-semibold">
+                        <span className="text-danger">* </span>Agent
+                      </Form.Label>
                       <LookupField
                         value={{ Id: loan.Agent }}
                         entityName={`customers?Dealer=${loan.Dealer}&Agent=1`}
@@ -582,13 +624,11 @@ export default function LoanDetail({ isEdit, resetButton }) {
                     </>
                   ) : (
                     <div>
-
-<RecordLinkField
-                label="Agent"
-                data={loan.customers__Agent}
-                table="customer"
-              />
-                    
+                      <RecordLinkField
+                        label="Agent"
+                        data={loan.customers__Agent}
+                        table="customer"
+                      />
                     </div>
                   )}
                 </Form.Group>
@@ -608,7 +648,9 @@ export default function LoanDetail({ isEdit, resetButton }) {
             <div className="row">
               <div className="col-md-3">
                 <Form.Group className="mb-3">
-                  <Form.Label className="fw-semibold"><span className="text-danger">* </span>New/Used</Form.Label>
+                  <Form.Label className="fw-semibold">
+                    <span className="text-danger">* </span>New/Used
+                  </Form.Label>
                   <Form.Select
                     name="ConditionType"
                     value={loan.ConditionType || ""}
@@ -632,14 +674,16 @@ export default function LoanDetail({ isEdit, resetButton }) {
                 <Form.Group className="mb-3">
                   {editMode ? (
                     <>
-                      <Form.Label className="fw-semibold"><span className="text-danger">* </span>Model</Form.Label>
+                      <Form.Label className="fw-semibold">
+                        <span className="text-danger">* </span>Model
+                      </Form.Label>
                       <div
                         className={errors.Model ? "react-select-invalid" : ""}
                       >
                         <Select
                           classNamePrefix="react-select"
                           options={products}
-                          value={loan.ModelId}
+                          value={loan.Model}
                           placeholder="Select..."
                           isSearchable
                           onChange={(option) => {
@@ -651,13 +695,11 @@ export default function LoanDetail({ isEdit, resetButton }) {
                     </>
                   ) : (
                     <div>
-
-<RecordLinkField
-                label="Model"
-                data={loan.products__Model}
-                table="product"
-              />
-                     
+                      <RecordLinkField
+                        label="Model"
+                        data={loan.products__Model}
+                        table="product"
+                      />
                     </div>
                   )}
                 </Form.Group>
@@ -665,7 +707,9 @@ export default function LoanDetail({ isEdit, resetButton }) {
 
               <div className="col-md-3">
                 <Form.Group className="mb-3">
-                  <Form.Label className="fw-semibold"><span className="text-danger">* </span>Model Month</Form.Label>
+                  <Form.Label className="fw-semibold">
+                    <span className="text-danger">* </span>Model Month
+                  </Form.Label>
                   {editMode ? (
                     <>
                       <ModelMonthSelect
@@ -690,7 +734,9 @@ export default function LoanDetail({ isEdit, resetButton }) {
 
               <div className="col-md-3">
                 <Form.Group className="mb-3">
-                  <Form.Label className="fw-semibold"><span className="text-danger">* </span>Model Year</Form.Label>
+                  <Form.Label className="fw-semibold">
+                    <span className="text-danger">* </span>Model Year
+                  </Form.Label>
                   {editMode ? (
                     <>
                       <ModelYearSelect
@@ -768,7 +814,9 @@ export default function LoanDetail({ isEdit, resetButton }) {
               {/* Numeric fields custom, not renderField */}
               <div className="col-md-3">
                 <Form.Group className="mb-3">
-                  <Form.Label className="fw-semibold"><span className="text-danger">* </span>Total Price</Form.Label>
+                  <Form.Label className="fw-semibold">
+                    <span className="text-danger">* </span>Total Price
+                  </Form.Label>
                   <NumericFormat
                     thousandSeparator
                     prefix="₹"
@@ -788,7 +836,9 @@ export default function LoanDetail({ isEdit, resetButton }) {
 
               <div className="col-md-3">
                 <Form.Group className="mb-3">
-                  <Form.Label className="fw-semibold"><span className="text-danger">* </span>Down Payment</Form.Label>
+                  <Form.Label className="fw-semibold">
+                    <span className="text-danger">* </span>Down Payment
+                  </Form.Label>
                   <NumericFormat
                     thousandSeparator
                     prefix="₹"
@@ -873,7 +923,9 @@ export default function LoanDetail({ isEdit, resetButton }) {
 
               <div className="col-md-3">
                 <Form.Group className="mb-3">
-                  <Form.Label className="fw-semibold"><span className="text-danger">* </span>Tenure</Form.Label>
+                  <Form.Label className="fw-semibold">
+                    <span className="text-danger">* </span>Tenure
+                  </Form.Label>
                   <Form.Control
                     type="text"
                     name="Tenure"
@@ -907,7 +959,9 @@ export default function LoanDetail({ isEdit, resetButton }) {
 
               <div className="col-md-3">
                 <Form.Group className="mb-3">
-                  <Form.Label className="fw-semibold"><span className="text-danger">* </span>EMI Amount</Form.Label>
+                  <Form.Label className="fw-semibold">
+                    <span className="text-danger">* </span>EMI Amount
+                  </Form.Label>
                   <NumericFormat
                     thousandSeparator
                     prefix="₹"
@@ -1063,7 +1117,8 @@ export default function LoanDetail({ isEdit, resetButton }) {
             <div className="row">
               <div className="col-md-3">
                 <Form.Group className="mb-3">
-                  <Form.Label className="fw-semibold"><span className="text-danger">* </span>
+                  <Form.Label className="fw-semibold">
+                    <span className="text-danger">* </span>
                     Agreement Date
                   </Form.Label>
                   <Form.Control
@@ -1195,7 +1250,10 @@ export default function LoanDetail({ isEdit, resetButton }) {
 
               <div className="col-md-3">
                 <Form.Group className="mb-3">
-                  <Form.Label className="fw-semibold"> <span className="text-danger">* </span>EMI End Date</Form.Label>
+                  <Form.Label className="fw-semibold">
+                    {" "}
+                    <span className="text-danger">* </span>EMI End Date
+                  </Form.Label>
                   <Form.Control
                     type="date"
                     name="EMIEndDate"
@@ -1257,12 +1315,11 @@ export default function LoanDetail({ isEdit, resetButton }) {
                     </>
                   ) : (
                     <div>
-
-<RecordLinkField
-                label="Hirer"
-                data={loan.customers__Hirer}
-                table="customer"
-              />
+                      <RecordLinkField
+                        label="Hirer"
+                        data={loan.customers__Hirer}
+                        table="customer"
+                      />
                     </div>
                   )}
                   {errors.Hirer && (
@@ -1292,13 +1349,11 @@ export default function LoanDetail({ isEdit, resetButton }) {
                     </>
                   ) : (
                     <div>
-
-<RecordLinkField
-                label="Guarantor"
-                data={loan.customers__Guarantor}
-                table="customer"
-              />
-
+                      <RecordLinkField
+                        label="Guarantor"
+                        data={loan.customers__Guarantor}
+                        table="customer"
+                      />
                     </div>
                   )}
                   {errors.Guarantor && (
@@ -1331,11 +1386,10 @@ export default function LoanDetail({ isEdit, resetButton }) {
                   ) : (
                     <div>
                       <RecordLinkField
-                label="Referrer 1"
-                data={loan.customers__Referrer1}
-                table="customer"
-              />
-                      
+                        label="Referrer 1"
+                        data={loan.customers__Referrer1}
+                        table="customer"
+                      />
                     </div>
                   )}
                   {errors.Referrer1 && (
@@ -1367,13 +1421,11 @@ export default function LoanDetail({ isEdit, resetButton }) {
                     </>
                   ) : (
                     <div>
-
-<RecordLinkField
-                label="Referrer 2"
-                data={loan.customers__Referrer2}
-                table="customers"
-              />
-                      
+                      <RecordLinkField
+                        label="Referrer 2"
+                        data={loan.customers__Referrer2}
+                        table="customers"
+                      />
                     </div>
                   )}
                   {errors.Referrer2 && (
@@ -1616,21 +1668,21 @@ export default function LoanDetail({ isEdit, resetButton }) {
               <i className="bi bi-clock-history me-2"></i>System Information
             </h4>
             <div className="row">
-            <div className="col-md-6">
-              <RecordLinkField
-                label="Created By"
-                data={loan.users__CreatedBy}
-                table="user"
-              />
-            </div>
+              <div className="col-md-6">
+                <RecordLinkField
+                  label="Created By"
+                  data={loan.users__CreatedBy}
+                  table="user"
+                />
+              </div>
 
-            <div className="col-md-6">
-              <RecordLinkField
-                label="Modified By"
-                data={loan.users__ModifiedBy}
-                table="user"
-              />
-            </div>
+              <div className="col-md-6">
+                <RecordLinkField
+                  label="Modified By"
+                  data={loan.users__ModifiedBy}
+                  table="user"
+                />
+              </div>
               <div className="col-md-6">
                 {renderField("Created Date", "CreatedDate", {
                   editable: false,

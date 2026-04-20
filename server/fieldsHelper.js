@@ -14,6 +14,7 @@ export const objectFields = {
     "Email",
     "Country",
     "State",
+    "City",
     "District",
     "PinCode",
     "Street",
@@ -31,6 +32,7 @@ export const objectFields = {
     "Guarantor",
     "Referrer",
     "District",
+    "City",
     "PinCode",
     "Street",
     "Dealer",
@@ -108,5 +110,6 @@ export const objectFields = {
   documents:["Name","Version","ParentId"],
   banks:["Name","Description"],
   insurancecompanies:["Name","Description"],
-  users:["FirstName","LastName","Email","Phone","Password"]
+  users:["FirstName","LastName","Email","Phone","Password"],
+  loanitems:["Amount", "Loan", "DueDate", "Status"]
 };

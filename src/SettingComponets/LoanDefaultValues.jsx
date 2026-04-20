@@ -30,7 +30,7 @@ export default function LoanDefaultValues() {
   });
 
   const loanTypes = [
-    "Rate Interest Rate",
+    "Loan ROI",
     "EMI Bounce Charge",
     "OD Charge Rate",
     "File Charge",
@@ -44,9 +44,8 @@ export default function LoanDefaultValues() {
   async function fetchLoanDefaultValues() {
     setLoading(true);
     try {
-      const res = await fetch(`${apiData.PORT}/api/get/loandefaultvalue`);
-      const data = await res.json();
-      const list = data.data || [];
+      const data = await helperMethods.getEntityDetails(`loandefaultvalue`);
+      const list = data || [];
       setLoanDefaults(list);
       setFilteredDefaults(list);
     } catch {

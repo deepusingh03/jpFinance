@@ -4,7 +4,6 @@
   "private": true,
   "main": "index.js",
   "license": "ISC",
-
   "scripts": {
     "start": "node index.js",
     "server": "node index.js",
@@ -14,7 +13,6 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
-
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -29,6 +27,7 @@
     "bootstrap-icons": "^1.13.1",
     "chart.js": "^4.5.1",
     "compression": "^1.8.1",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
@@ -57,7 +56,6 @@
     "web-vitals": "^2.1.4",
     "xlsx": "^0.18.5"
   },
-
   "devDependencies": {
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.2.1",

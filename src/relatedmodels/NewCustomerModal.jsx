@@ -84,7 +84,6 @@ function NewCustomerModal({
     setNewCustomer((prev) => {
       const updated = { ...prev, [name]: e.checked };
       // Update Type only if Agent is checked
-      console.log("this is the data :: ", updated);
       return updated;
     });
 
@@ -177,7 +176,6 @@ function NewCustomerModal({
         ModifiedBy: helperMethods.fetchUser(),
         ModifiedDate: helperMethods.dateToString(),
       };
-      console.log('payload :: ',payload)
       // if(payload)return;
       const res = await fetch(`${apiData.PORT}/api/customers/insert`, {
         method: "POST",

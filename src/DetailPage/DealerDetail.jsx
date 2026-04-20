@@ -30,18 +30,15 @@ useEffect(()=>{
   async function fetchDealer() {
     try {
       setLoading(true);
-      const res = await fetch(`${apiData.PORT}/api/get/dealers?Id=${id}`);
-
-      const data = await res.json();
-
-      if (!res.ok || !data.data) {
+      const data = await helperMethods.getEntityDetails(`dealers?Id=${id}`);
+      if (!data) {
         toast.error("Failed to load dealer details.");
         setDealer(null);
         return;
       }
-      if(data && data.data && !data.data.length > 0) return;
-      setDealer(data.data[0]);
-      setForm(data.data[0]);
+      if(data && !data.length === 0) return;
+      setDealer(data[0]);
+      setForm(data[0]);
     } catch (e) {
       console.error(e);
       toast.error("Failed to load dealer details.");
@@ -106,7 +103,7 @@ useEffect(()=>{
         ModifiedBy: helperMethods.fetchUser(),
         ModifiedDate: helperMethods.dateToString(),
       }
-      const res = await fetch(`${apiData.PORT}/api/dealer/update`, {
+      const res = await fetch(`${apiData.PORT}/api/dealers/update`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -209,8 +206,9 @@ useEffect(()=>{
             <div className="col-md-6">{renderField("State", "State")}</div>
             <div className="col-md-6">{renderField("District", "District")}</div>
             <div className="col-md-6">{renderField("City", "City")}</div>
-            <div className="col-md-6">{renderField("Street", "Street")}</div>
             <div className="col-md-6">{renderField("Pin Code", "PinCode")}</div>
+            <div className="col-md-6">{renderField("Street", "Street")}</div>
+           
           </div>
         </section>
   

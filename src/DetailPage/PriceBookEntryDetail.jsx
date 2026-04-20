@@ -32,16 +32,15 @@ export default function PricebookEntryDetail({ isEdit, resetButton }) {
   async function fetchEntry() {
     try {
       setLoading(true);
-      const res = await fetch(`${apiData.PORT}/api/get/pricebookentry?Id=${id}`);
-      const data = await res.json();
-
-      if (!res.ok || !data.data || data.data.length === 0) {
+      const data = await helperMethods.getEntityDetails(`pricebookentry?Id=${id}`);
+      console.log('data ::',data);
+      if (!data || data.length === 0) {
         toast.error(data.error || "Failed to load pricebookentry");
         setEntry(null);
         return;
       }
 
-      const record = data.data[0];
+      const record = data[0];
       setEntry(record);
       setForm(record);
     } catch (err) {
@@ -187,8 +186,7 @@ export default function PricebookEntryDetail({ isEdit, resetButton }) {
                 <RecordLinkField
                 isRequired="true"
                   label="Pricebook"
-                  id={entry.pricebook_id}
-                  firstName={entry.pricebook_Name}
+                  data={entry.pricebook__Pricebook}
                   table="pricebook"
                 />
               </Form.Group>
@@ -200,8 +198,7 @@ export default function PricebookEntryDetail({ isEdit, resetButton }) {
                 <RecordLinkField
                 isRequired="true"
                   label="Product"
-                  id={entry.Product}
-                  firstName={entry.product_Name}
+                  data={entry.products__Product}
                   table="product"
                 />
               </Form.Group>
@@ -220,9 +217,7 @@ export default function PricebookEntryDetail({ isEdit, resetButton }) {
             <div className="col-md-6">
               <RecordLinkField
                 label="Created By"
-                id={entry.createdby_id}
-                firstName={entry.createdby_firstname}
-                lastName={entry.createdby_lastname}
+                data={entry.users__CreatedBy}
                 table="user"
               />
 
@@ -231,9 +226,7 @@ export default function PricebookEntryDetail({ isEdit, resetButton }) {
             <div className="col-md-6">
               <RecordLinkField
                 label="Modified By"
-                id={entry.modifiedby_id}
-                firstName={entry.modifiedby_firstname}
-                lastName={entry.modifiedby_lastname}
+                data={entry.users__ModifiedBy}
                 table="user"
               />
             </div>

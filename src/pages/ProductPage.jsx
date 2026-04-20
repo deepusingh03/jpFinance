@@ -4,11 +4,23 @@ import { useNavigate } from "react-router-dom";
 import CustomNavbar from "../components/CustomNavbar";
 import CustomTable from "../components/CustomTable";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
-import { apiData } from "../utility/api";
 
 import { Row, Col, Button, Form, Spinner } from "react-bootstrap";
 import NewProductModal from "../relatedmodels/NewProductModal";
 import { toast } from "react-toastify";
+import { helperMethods } from "../utility/CMPhelper";
+
+// Constants
+const TABLE_COLUMNS = [
+  { label: "Name", key: "Name" },
+  { label: "Code", key: "Code" },
+  { label: "CC Power", key: "CCPower" },
+  { label: "Description", key: "Description" },
+  { label: "Brand Name", key: "Brand" },
+  { label: "Created By", key: "CreatedBy" },
+  { label: "Created Date", key: "CreatedDate" },
+];
+
 function ProductPage() {
   const [applications, setApplications] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -17,69 +29,78 @@ function ProductPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState(null);
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true); // Add loading state
-  const [recordToEdit, setRecordToEdit] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [recordToEdit, setRecordToEdit] = useState(null);
+
+  // Set document title
   useEffect(() => {
     document.title = "Products | JP Finance";
-  });
-  const fetchProducts = useCallback(async () => {
-    setLoading(true); // Start loading when fetching data
-    await fetch(`${apiData.PORT}/api/get/products`)
-      .then((res) => res.json())
-      .then((data) => {
-        fetchBrandRecords(data);
-      })
-      .catch((err) => {
-        toast.error("Error fetching data");
-        console.error("Error fetching data:", err);
-      });
   }, []);
-  // Dummy data for demonstration
+
+  // Fetch products with brand information
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await helperMethods.getEntityDetails('products');
+      console.log("Products data:", data);
+      
+      // Check if data and data.data exist
+      if (data  && Array.isArray(data)) {
+        // await fetchBrandRecords(data);
+        setApplications(data);
+        setFilteredApps(data);
+      } else {
+        console.error("Invalid products data structure:", data);
+        toast.error("Invalid products data received");
+        
+        setLoading(false);
+      }
+    } catch (err) {
+      toast.error("Error fetching data");
+      console.error("Error fetching data:", err);
+      setLoading(false);
+    }
+    finally{
+      setLoading(false);
+    }
+  }, []);
+  // Initial fetch
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
-  const fetchBrandRecords = async (productData) => {
-    await fetch(`${apiData.PORT}/api/get/brands`)
-      .then((res) => res.json())
-      .then((data) => {
-        productData.data.map((element) => {
-          element.BrandName =
-            data.data.filter((b) => b.Id === element.BrandId)[0]?.Name || "";
-        });
-        setApplications(productData.data);
-        setFilteredApps(productData.data);
-        setLoading(false); // Stop loading after fetching
-      })
-      .catch((err) => {
-        console.error("Error fetching data:", err);
-        setLoading(false); // Stop loading on error as well
-      });
-  };
   // Filter applications based on search term
   useEffect(() => {
     if (applications && applications.length > 0) {
       const filtered = applications.filter(
         (app) =>
-          app.Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          app.Code.toLowerCase().includes(searchTerm.toLowerCase())
+          app.Name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.Code?.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredApps(filtered);
-      //fetchBrandRecords();
-    } else {
-      //setFilteredApps([]); // optional, clear list if no data
+    } else if (searchTerm === "") {
+      setFilteredApps(applications);
     }
   }, [searchTerm, applications]);
 
+  // Modal handlers
   const handleShow = () => {
     setRecordToEdit(null);
     setShowModal(true);
   };
-  const handleClose = () => setShowModal(false);
 
-  const handleCustomerClick = (customer) => {
-    navigate(`/products/detail/${customer.Id}/view`);
+  const handleClose = () => {
+    setShowModal(false);
+    setRecordToEdit(null);
   };
+
+  // Navigation handlers
+  const handleCustomerClick = (customer) => {
+    if (customer && customer.Id) {
+      navigate(`/products/detail/${customer.Id}/view`);
+    }
+  };
+
   const handleRowSelection = (selectedOption, row) => {
     if (selectedOption === "view") {
       navigate(`/products/detail/${row.Id}/view`);
@@ -91,6 +112,8 @@ function ProductPage() {
       setShowDeleteModal(true);
     }
   };
+
+  // Delete handlers
   const confirmDelete = () => {
     setShowDeleteModal(false);
     setRecordToDelete(null);
@@ -101,11 +124,10 @@ function ProductPage() {
     setShowDeleteModal(false);
     setRecordToDelete(null);
   };
+
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#f8f9fa" }}>
       <CustomNavbar />
-      {/* <Container className="container-fluid mt-4"> */}
-      {/* Top row with +New button and Search */}
       <Row className="mb-3 mt-4 mx-2">
         <Col xs={12} className="text-start fw-bold h4">
           All Products
@@ -127,8 +149,6 @@ function ProductPage() {
         </Col>
       </Row>
 
-      {/* Table */}
-      {/* Table */}
       {loading ? (
         <div className="text-center mt-5">
           <Spinner animation="border" variant="dark" />
@@ -140,19 +160,12 @@ function ProductPage() {
               data={filteredApps}
               onRowClick={handleCustomerClick}
               onOptionSelect={handleRowSelection}
-              columns={[
-                { label: "Name", key: "Name" },
-                { label: "Code", key: "Code" },
-                { label: "CC Power", key: "CCPower" },
-                { label: "Description", key: "Description" },
-                { label: "Brand Name", key: "Brand" },
-                { label: "Created By", key: "CreatedBy" },
-                { label: "Created Date", key: "CreatedDate" },
-              ]}
+              columns={TABLE_COLUMNS}
             />
           </Col>
         </Row>
       )}
+      
       <NewProductModal
         onShow={showModal}
         onHide={handleClose}

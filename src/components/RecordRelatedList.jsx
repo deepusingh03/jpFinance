@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Table, Card, Spinner, Button, Dropdown } from "react-bootstrap";
 import { useNavigate, useLocation } from "react-router-dom";
-import { apiData } from "../utility/api";
 import NewPriceBook from "../relatedmodels/NewPriceBook";
 import NewPriceBookEntry from "../relatedmodels/NewPriceBookEntry";
-// import DocumentUpload from "../relatedmodels/DocumentUpload";
 import { helperMethods } from "/src/utility/CMPhelper.jsx";
 import { Checkbox } from "primereact/checkbox";
 
@@ -21,28 +19,27 @@ const RecordRelatedList = ({ details }) => {
 
   // Refresh on URL change
   useEffect(() => {
+    console.log('details :::',details)
     setRefresh((prev) => prev + 1);
   }, [location.pathname]);
 
   // Fetch related data
   useEffect(() => {
-    console.log(':::',details)
     if (!details?.entity || !details?.parentField || !details?.Id) return;
-
+    console.log("details ::: ", details);
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await fetch(
-          `${apiData.PORT}/api/get/${details.entity}?${details.parentField}=${details.Id}`
-        );
-        const data = await res.json();
 
-        if (data?.data) {
+        const data = await helperMethods.getEntityDetails(
+          `${details.entity}?${details.parentField}=${details.Id}`
+        );
+        if (data) {
           const records =
             details.entity.toLowerCase() === "pricebook"
-              ? data.data.filter((ele) => ele.IsActive == 1)
-              : data.data;
-
+              ? data.filter((ele) => ele.IsActive == 1)
+              : data;
+          console.log("records :: ", records);
           setRelatedData(records);
           setColumns(records.length > 0 ? Object.keys(records[0]) : []);
         } else {
@@ -177,15 +174,21 @@ const RecordRelatedList = ({ details }) => {
                         whiteSpace: "nowrap",
                         textAlign: "center",
                         cursor:
-                          col === "Name" || col === "FirstName" || col === "PricebookName"
+                          col === "Name" ||
+                          col === "FirstName" ||
+                          col === "PricebookName"
                             ? "pointer"
                             : "default",
                         color:
-                          col === "Name" || col === "FirstName" || col === "PricebookName"
+                          col === "Name" ||
+                          col === "FirstName" ||
+                          col === "PricebookName"
                             ? "#0d6efd"
                             : "",
                         textDecoration:
-                          col === "Name" || col === "FirstName" || col === "PricebookName"
+                          col === "Name" ||
+                          col === "FirstName" ||
+                          col === "PricebookName"
                             ? "underline"
                             : "none",
                       }}

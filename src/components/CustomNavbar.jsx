@@ -19,8 +19,9 @@ function CustomNavbar() {
       fetchUser();
   }, []);  // Empty dependency array ensures it only runs once
   const fetchUser = async () => {
-    const user = await helperMethods.fetchUserDetails();
-   
+    const localUserData = JSON.parse(localStorage.getItem("userData"));
+    const userRecord = await helperMethods.getEntityDetails(`users?Id=${localUserData?.Id || localUserData?.user?.Id}`);
+    const user = userRecord[0] || null
     if (user && user.Id) {
       const fullName = `${user.FirstName} ${user.LastName}`;
       setUserName(fullName);

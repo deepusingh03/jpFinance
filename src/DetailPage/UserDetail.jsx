@@ -31,16 +31,15 @@ export default function UserDetail({ isEdit, resetButton }) {
   async function fetchUser() {
     try {
       setLoading(true);
-      const res = await fetch(`${apiData.PORT}/api/get/users?Id=${id}`);
-      const data = await res.json();
+      const data = await helperMethods.getEntityDetails(`users?Id=${id}`);
 
-      if (!res.ok || !data.data) {
+      if(!data) {
         toast.error("Failed to load user");
         setUser(null);
         return;
       }
 
-      setUser(data.data[0]);
+      setUser(data[0]);
     } catch (err) {
       console.error(err);
       toast.error("Server error loading user");

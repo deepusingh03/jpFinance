@@ -12,7 +12,8 @@ import {
 import CustomNavbar from "../components/CustomNavbar";
 import CustomTable from "../components/CustomTable";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
-import { apiData } from "../utility/api";
+// import { apiData } from "../utility/api";
+import { helperMethods } from "../utility/CMPhelper";
 import NewDealerModal from "../relatedmodels/NewDealerModal";
 
 function DealerPage() {
@@ -33,9 +34,9 @@ function DealerPage() {
   const fetchDealers = useCallback(async () => {
     setIsLoading(true); // Set loading to true when fetching data
     try {
-      const res = await fetch(`${apiData.PORT}/api/get/dealers`);
-      const data = await res.json();
-        setDealers(data.data || []);
+      const data = await helperMethods.getEntityDetails('dealers')//await fetch(`${apiData.PORT}/api/get/dealers`);
+      console.log('data :: ',data);
+      setDealers(data || []);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {

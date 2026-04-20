@@ -6,6 +6,7 @@ import RecordLinkField from "../components/RecordLinkField";
 import { helperMethods } from "../utility/CMPhelper";
 import { toast } from "react-toastify";
 import { apiData } from "../utility/api";
+import { format } from "date-fns";
 
 // Email & phone format
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -27,16 +28,15 @@ export default function CustomerDetail({ isEdit, resetButton }) {
   async function fetchCustomer() {
     try {
       setLoading(true);
-      const res = await fetch(`${apiData.PORT}/api/get/customers?Id=${id}`);
-      const data = await res.json();
-
-      if (!res.ok || !data.data || data.data.length === 0) {
+      const data = await helperMethods.getEntityDetails(`customers?Id=${id}`);
+console.log('data :: ',data);
+      if (!data || data.length === 0) {
         toast.error(data.error || "Failed to load loan");
         setCustomer(null);
         return;
       }
 
-      const record = data.data[0];
+      const record = data[0];
       setCustomer(record);
       setForm(record);
     } catch (err) {
@@ -114,7 +114,6 @@ export default function CustomerDetail({ isEdit, resetButton }) {
       });
 
       const data = await res.json();
-console.log(data,res);
       if (!res.ok || !data.success) {
         toast.error(data.error || "Failed to update customer");
         return;
@@ -216,7 +215,7 @@ console.log(data,res);
                 ) : (
                   <div className="p-2 bg-light rounded">
                     {customer.DateOfBirth !== null
-                      ? helperMethods.handleDateFormat(customer.DateOfBirth)
+                      ? format(new Date(customer.DateOfBirth), "dd/MM/yyyy")
                       : "—"}
                   </div>
                 )}
@@ -350,8 +349,9 @@ console.log(data,res);
               {renderField("District", "District")}
             </div>
             <div className="col-md-6">{renderField("City", "City")}</div>
-            <div className="col-md-6">{renderField("Street", "Street")}</div>
+           
             <div className="col-md-6">{renderField("Pin Code", "PinCode")}</div>
+            <div className="col-md-6">{renderField("Street", "Street")}</div>
           </div>
         </section>
 

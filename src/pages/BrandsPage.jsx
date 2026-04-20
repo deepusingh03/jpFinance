@@ -3,10 +3,10 @@ import { Row, Col, Button, Form, Spinner, Toast, ToastContainer } from "react-bo
 import CustomNavbar from "../components/CustomNavbar";
 import CustomTable from "../components/CustomTable";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
-import { apiData } from "../utility/api";
 import NewBrandModal from "../relatedmodels/NewBrandModal";  // Import the new modal component
 import { useNavigate } from "react-router-dom";
 import {toast} from "react-toastify";
+import { helperMethods } from "../utility/CMPhelper";
 function BrandsPage() {
   const [brands, setBrands] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -23,10 +23,9 @@ function BrandsPage() {
   const fetchBrands = useCallback(async () => {
     setLoading(true); // Set loading to true when fetching data
     try {
-      const response = await fetch(`${apiData.PORT}/api/get/brands`);
-      const data = await response.json();
-      setBrands(data.data);
-      setFilteredApps(data.data);
+      const data = await helperMethods.getEntityDetails('brands');
+      setBrands(data);
+      setFilteredApps(data);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error(" Error loading data. Please try again.");

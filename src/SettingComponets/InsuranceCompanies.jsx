@@ -37,9 +37,8 @@ export default function InsuranceCompanies() {
   async function fetchInsuranceCompanies() {
     setLoading(true);
     try {
-      const res = await fetch(`${apiData.PORT}/api/get/insurancecompanies`);
-      const data = await res.json();
-      const companiesList = data.data || [];
+      const data = await helperMethods.getEntityDetails(`insurancecompanies`);
+      const companiesList = data || [];
       setInsuranceCompanies(companiesList);
       setFilteredCompanies(companiesList);
     } catch {

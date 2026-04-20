@@ -51,7 +51,6 @@ export default function EMIPage() {
     try {
       const res = await fetch(`${apiData.PORT}/api/emis/get`);
       var data = await res.json();
-      console.log(data);
       data.data.forEach((element)=>{
         element.AccountHolder = `${element.FirstName || ''} ${element.LastName || ''}`;
       })

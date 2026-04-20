@@ -4,6 +4,7 @@ import "../css/DocumentPreview.css";
 import UploadDocumentVersion from "../relatedmodels/UploadDocumentVersion";
 import { apiData } from "../utility/api";
 import { toast } from "react-toastify";
+import { helperMethods } from "../utility/CMPhelper";
 
 const DocumentPreview = ({ data }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -18,12 +19,10 @@ const DocumentPreview = ({ data }) => {
 
     try {
       setIsLoading(true);
-      const res = await fetch(
-        `${apiData.PORT}/api/get/documentversion?ParentDocument=${data.Id}`
+      const result = await helperMethods.getEntityDetails(`documentversion?ParentDocument=${data.Id}`
       );
-      const result = await res.json();
 
-      const versions = result.data || [];
+      const versions = result || [];
       setDocuments(versions);
 
       // Auto-select first document

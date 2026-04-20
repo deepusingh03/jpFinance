@@ -263,11 +263,10 @@ export default function CompanyInformation() {
     try {
       setLoading(true);
 
-      const res = await fetch(`${apiData.PORT}/api/get/companysettings`);
-      const data = await res.json();
+      const data = await helperMethods.getEntityDetails(`companysettings`);
 
-      if (!data || !data.data || data.data.length === 0) return;
-      setInfo(data.data[0]);
+      if (!data || data.length === 0) return;
+      setInfo(data[0]);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load company info.");

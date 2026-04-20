@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 import CustomNavbar from "../components/CustomNavbar";
 import CustomTable from "../components/CustomTable";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
-import { apiData } from "../utility/api";
 
 import { Row, Col, Button, Form, Spinner } from "react-bootstrap";
 import NewLoanModal from "../relatedmodels/NewLoanModal";
 import { toast } from "react-toastify";
+import { helperMethods } from "../utility/CMPhelper";
 
 function LoanPage() {
   const [applications, setApplications] = useState([]);
@@ -41,13 +41,12 @@ function LoanPage() {
   }, [searchTerm, applications]);
 
 
-  const fetchLoanRecords = () => {
+  const fetchLoanRecords = async() => {
     setLoading(true);
-    fetch(`${apiData.PORT}/api/get/loans`)
-      .then((res) => res.json())
+    await helperMethods.getEntityDetails('loans')
       .then((data) => {
-        setApplications(data.data || []);
-        setFilteredApps(data.data || []);
+        setApplications(data || []);
+        setFilteredApps(data || []);
       })
       .catch((err) => {
         toast.error("Error fetching loans:", err);

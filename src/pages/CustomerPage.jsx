@@ -5,8 +5,8 @@ import { Row, Col, Button, Form, Spinner } from "react-bootstrap";
 import CustomNavbar from "../components/CustomNavbar";
 import CustomTable from "../components/CustomTable";
 import NewCustomerModal from "../relatedmodels/NewCustomerModal";
-import { apiData } from "../utility/api";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
+import { helperMethods } from "../utility/CMPhelper";
 
 
 function CustomerPage() {
@@ -24,10 +24,10 @@ const [record,setRecord] = useState(null);
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${apiData.PORT}/api/get/customers`);
-      const data = await response.json();
-      setApplications(data.data);
-      setFilteredApps(data.data);
+      const data = await helperMethods.getEntityDetails('customers');
+      
+      setApplications(data);
+      setFilteredApps(data);
     } catch (err) {
       console.error("Error fetching data:", err);
     } finally {

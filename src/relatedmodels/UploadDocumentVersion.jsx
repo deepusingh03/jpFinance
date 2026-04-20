@@ -31,7 +31,6 @@ const UploadDocumentVersion = ({
   const [error, setError] = useState("");
   const fileInputRef = useRef(null);
   useEffect(() => {
-    console.log('parentData :::::',parentData);
   })
   // File type icons mapping
   const fileIcons = {
@@ -184,7 +183,6 @@ const UploadDocumentVersion = ({
         method: "POST",
         body: formData,
       });
-      console.log('Documents :: ',formData);
       const result = await res.json();
       if (!result.success) throw new Error(result.message);
 

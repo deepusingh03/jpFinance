@@ -17,6 +17,7 @@
     "chart.js": "^4.5.1",
     "date-fns": "^4.1.0",
     "exceljs": "^4.4.0",
+    "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.548.0",
     "primereact": "^10.9.7",
     "react": "^19.1.1",

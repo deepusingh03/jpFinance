@@ -29,17 +29,16 @@ export default function BrandDetail({ isEdit, resetButton }) {
   async function fetchBrand() {
     try {
       setLoading(true);
-      const res = await fetch(`${apiData.PORT}/api/get/brands?Id=${id}`);
+      const data = await helperMethods.getEntityDetails(`brands?Id=${id}`);
 
-      const data = await res.json();
 
-      if (!res.ok || !data.data || data.data.length === 0) {
+      if (!data || data.length === 0) {
         toast.error("Failed to load brand details.");
         setBrand(null);
         return;
       }
 
-      const record = data.data[0];
+      const record = data[0];
       setBrand(record);
       setForm(record);
     } catch (e) {

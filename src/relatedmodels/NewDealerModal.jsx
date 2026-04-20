@@ -16,7 +16,6 @@ function NewDealerModal({ show, handleClose, fetchDealers, record, newData }) {
     setErrors({ ...errors, [e.target.name]: "" });
   };
   useEffect(() => {
-    console.log("this is the record : ", record);
     if (record != null) {
       setNewDealer(record);
     } else {
@@ -35,7 +34,23 @@ function NewDealerModal({ show, handleClose, fetchDealers, record, newData }) {
         newErrors[field] = "This field is required";
       }
     });
+    // ✅ Phone validation
+    if (newDealer.Phone) {
+      const phone = newDealer.Phone.toString().trim();
 
+      // Only digits allowed
+      if (!/^\d+$/.test(phone)) {
+        newErrors.Phone = "Phone must contain only numbers";
+      }
+      // Length check (Indian mobile numbers = 10 digits)
+      else if (phone.length !== 10) {
+        newErrors.Phone = "Phone must be exactly 10 digits";
+      }
+      // Starts with valid digits (6-9 in India)
+      else if (!/^[6-9]\d{9}$/.test(phone)) {
+        newErrors.Phone = "Invalid Indian mobile number";
+      }
+    }
     if (newDealer.Email && !/\S+@\S+\.\S+/.test(newDealer.Email)) {
       newErrors.Email = "Invalid email format";
     }
@@ -48,20 +63,19 @@ function NewDealerModal({ show, handleClose, fetchDealers, record, newData }) {
     let obj = {
       ...newDealer,
     };
-    if (postalCode && postalCode != null) {
-      const res = await fetch(
-        `${apiData.PORT}/api/get/addresses?PostalCode=${postalCode}`
-      );
-      const data = await res.json();
-      if (data && data.data && data.data.length > 0) {
-        const address = data.data[0];
-        obj.District = address.District;
-        obj.City = address.CIty;
-      } else {
-        obj.District = "";
-        obj.City = "";
-      }
-    }
+    // if (postalCode && postalCode != null) {
+    //   const res = await helperMethods.getEntityDetails(`addresses?PostalCode=${postalCode}`
+    //   );
+    //   const data = await res.json();
+    //   if (data && data.data && data.data.length > 0) {
+    //     const address = data.data[0];
+    //     obj.District = address.District;
+    //     obj.City = address.CIty;
+    //   } else {
+    //     obj.District = "";
+    //     obj.City = "";
+    //   }
+    // }
     obj.PinCode = postalCode;
     setNewDealer(obj);
   };
@@ -193,7 +207,14 @@ function NewDealerModal({ show, handleClose, fetchDealers, record, newData }) {
                     <Form.Control
                       name="Phone"
                       value={newDealer.Phone}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        const value = e.target.value;
+
+                        // Allow only digits and max 10 length
+                        if (/^\d{0,10}$/.test(value)) {
+                          handleChange(e);
+                        }
+                      }}
                       isInvalid={!!errors.Phone}
                     />
                     <Form.Control.Feedback type="invalid">

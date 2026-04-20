@@ -251,7 +251,7 @@ export default function ViewProfile() {
   const [edit, setEdit] = useState(false);
   const [pwd, setPwd] = useState(false);
 
-  const loadProfile = useCallback(async (signal) => {
+  const loadProfile = useCallback(async () => {
     try {
       setLoad(true);
 
@@ -259,15 +259,13 @@ export default function ViewProfile() {
       if (!stored) throw new Error("Missing local user data");
 
       const localUser = JSON.parse(stored);
+      const data = await helperMethods.getEntityDetails(`users?Id=${localUser.Id}`);
 
-      const res = await fetch(`${apiData.PORT}/api/get/users?Id=${localUser.Id}`, { signal });
-      const data = await safeJson(res);
-
-      if (!res.ok || !data?.data?.length) {
+      if (!data || !data?.length) {
         toast.error("Unable to load profile.");
         setUser(null);
       } else {
-        setUser(data.data[0]);
+        setUser(data[0]);
       }
     } catch (err) {
       if (err.name !== "AbortError") toast.error("Could not load profile.");

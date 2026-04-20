@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import Select, { components } from "react-select";
+// eslint-disable-next-line no-unused-vars
+import Select,{components} from "react-select";
 import { Form, Button } from "react-bootstrap";
-import { apiData } from "../utility/api";
 import EditModals from "../utility/EditModals";
+import { helperMethods } from "../utility/CMPhelper";
 
 const LookupField = ({
   value,
@@ -27,11 +28,8 @@ const LookupField = ({
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`${apiData.PORT}/api/get/${entityName}`);
-      if (!response.ok) throw new Error(`Failed to fetch ${entityName}`);
-
-      const data = await response.json();
-      setAllValues(data.data || []);
+      const data = await helperMethods.getEntityDetails(`${entityName}`);
+      setAllValues(data || []);
     } catch (err) {
       setError(err.message);
     } finally {

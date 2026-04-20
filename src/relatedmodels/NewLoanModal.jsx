@@ -19,58 +19,41 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
 
   const [products, setProducts] = useState([]);
   const [isProgrammaticChange, setIsProgrammaticChange] = useState(false);
-  const [newLoan, setnewLoan] = useState(getEmptyLoan());
-  const [defaultLoansValues, setDefaultLoansValues] = useState(null);
+  const [newLoan, setnewLoan] = useState(null);
+  // const [defaultLoansValues, setDefaultLoansValues] = useState(null);
   useEffect(() => {
-    console.log('documentData :: ',documentData);
-    if (record) {
-      if (record && record.Model) {
-        const option = {
-          value: record.Model,
-          label: record.model_Name,
-          data: record,
-        };
-
-        record.ModelId = option;
+    const initLoan = async () => {
+      if (record) {
+        if (record.Model) {
+          const option = {
+            value: record.Model,
+            label: record.model_Name,
+            data: record,
+          };
+          record.ModelId = option;
+        }
+  
+        setnewLoan(record);
+      } else {
+        const emptyLoan = await getEmptyLoan();
+        setnewLoan(emptyLoan);
       }
-
-      setnewLoan(record);
-      console.log("this loan data :: ", record);
-    } else {
-      setnewLoan(getEmptyLoan());
-    }
+    };
+  
+    initLoan();
   }, [record]);
-
-  useEffect(() => {
-    if (!defaultLoansValues) {
-      getDefaultValues();
-    }
-  });
-  const getDefaultValues = async () => {
-    const response = await fetch(`${apiData.PORT}/api/get/loandefaultvalue`);
-    const responseResult = await response.json();
-    if (!responseResult || !responseResult.data) return;
-    const formattedObject = responseResult.data.reduce((acc, item) => {
-      const key = item.Type.toLowerCase()
-        .replace(/\s+/g, "")
-        .replace(/^\w/, (c) => c.toLowerCase());
-
-      acc[key] = Number(item.Value); // convert to number
-      return acc;
-    }, {});
-
-    console.log("formattedObject ::", formattedObject);
-    setDefaultLoansValues(formattedObject);
-    // return formattedObject;
-  };
 
   // Watch for Dealer changes
   useEffect(() => {
-    getProductModels();
-  }, [newLoan.Dealer]);
-  const onHideModal = () => {
+    if (newLoan?.Dealer) {
+      getProductModels();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newLoan?.Dealer]);
+  const onHideModal = async () => {
     if (!record) {
-      setnewLoan(getEmptyLoan()); // ✅ only reset for new loan
+      const emptyLoan = await getEmptyLoan();
+      setnewLoan(emptyLoan);
     }
     setErrors({});
     hideLoanModal();
@@ -91,9 +74,9 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
     const singleEMIAmount = props.floatValue;
     setErrors({ ...errors, EMIAmount: "" });
 
-    if (newLoan.CalculateTerm === "Calculate Interest(Default)") {
-      const tenure = Number(newLoan.Tenure);
-      const principal = Number(newLoan.DisburseAmount);
+    if (newLoan?.CalculateTerm === "Calculate Interest(Default)") {
+      const tenure = Number(newLoan?.Tenure);
+      const principal = Number(newLoan?.DisburseAmount);
 
       // Total amount customer will pay
       const totalPayable = singleEMIAmount * tenure;
@@ -115,8 +98,8 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
       calculateEMIs(updatedApp);
     } else {
       // EMI entered → calculate tenure
-      const principal = Number(newLoan.DisburseAmount);
-      const roi = Number(newLoan.RateOfInterest);
+      const principal = Number(newLoan?.DisburseAmount);
+      const roi = Number(newLoan?.RateOfInterest);
 
       const totalPayable = principal + (principal * roi) / 100;
       const tenure = Math.round(totalPayable / singleEMIAmount);
@@ -146,7 +129,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
     const roi = 15; // annual ROI %
 
     // 70% disbursement
-    const disburseAmount = newLoan.DisburseAmount;
+    const disburseAmount = newLoan?.DisburseAmount;
 
     // Simple interest calculation
     const remainingAmount =
@@ -156,7 +139,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
     const emiAmount = Math.ceil(remainingAmount / tenureValue);
 
     // EMI End Date calculation
-    const emiEndDate = new Date(newLoan.EMIStartDate);
+    const emiEndDate = new Date(newLoan?.EMIStartDate);
     emiEndDate.setMonth(emiEndDate.getMonth() + tenureValue - 1);
 
     const formattedEndDate = emiEndDate.toISOString().split("T")[0];
@@ -183,7 +166,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
     const totalAmountValue = props.floatValue;
     const updatedApp = {
       ...newLoan,
-      DisburseAmount: totalAmountValue - newLoan.DownPayment,
+      DisburseAmount: totalAmountValue - newLoan?.DownPayment,
     };
     updatedApp.RemainingAmountWithInterest =
       updatedApp.DisburseAmount +
@@ -208,7 +191,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
     const downpaymentValue = props.floatValue;
     const updatedApp = {
       ...newLoan,
-      DisburseAmount: newLoan.TotalPrice - downpaymentValue,
+      DisburseAmount: newLoan?.TotalPrice - downpaymentValue,
     };
     updatedApp.RemainingAmountWithInterest =
       updatedApp.DisburseAmount +
@@ -251,7 +234,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
   const getProductModels = async () => {
     setIsProgrammaticChange(true);
 
-    if (!newLoan.Dealer) {
+    if (!newLoan?.Dealer) {
       setnewLoan((prev) => ({
         ...prev,
         Model: "",
@@ -263,10 +246,9 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
     }
 
     const response = await fetch(
-      `${apiData.PORT}/api/fetch/pricebook-product/${newLoan.Dealer}`
+      `${apiData.PORT}/api/fetch/pricebook-product/${newLoan?.Dealer}`
     );
     const responseResult = await response.json();
-    console.log("responseResult :: ",responseResult)
     const records = responseResult?.data ?? [];
     const options = records.map((record) => ({
       value: record.Id,
@@ -278,7 +260,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
     // ✅ Don't clear Model — let the Select find the matching option from loaded products
   };
   const getAmountDetails = (option) => {
-    if (!newLoan.Dealer || !option) {
+    if (!newLoan?.Dealer || !option) {
       console.warn("Dealer or Model not selected");
       return;
     }
@@ -401,7 +383,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
     if (emiDetails && emiDetails.length > 0) {
       try {
         emiDetails.forEach((element) => {
-          element.Loan = newLoan.Id;
+          element.Loan = newLoan?.Id;
           (element.ModifiedBy = helperMethods.fetchUser()),
             (element.ModifiedDate = helperMethods.dateToString()),
             (element.CreatedBy = helperMethods.fetchUser()),
@@ -435,9 +417,8 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
       const payload = documentData.map((ele) => ({
         Id: generateId(),
         ...ele,
-        ParentId: newLoan.Id,
+        ParentId: newLoan?.Id,
       }));
-      console.log('payload ::',payload)
       const res = await fetch(`${apiData.PORT}/api/child/documents/insert`, {
         method: "POST",
         headers: {
@@ -487,7 +468,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
       }
     });
 
-    if (newLoan.Email && !/\S+@\S+\.\S+/.test(newLoan.Email)) {
+    if (newLoan?.Email && !/\S+@\S+\.\S+/.test(newLoan?.Email)) {
       newErrors.Email = "Invalid email format";
     }
 
@@ -506,11 +487,11 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
       ...newLoan,
       ModifiedBy: helperMethods.fetchUser(),
       ModifiedDate: helperMethods.dateToString(),
-      AgreementDate: newLoan.AgreementDate.toString().split("T")[0],
-      FirstAutoDebitDate: newLoan.FirstAutoDebitDate.toString().split("T")[0],
-      EMIStartDate: newLoan.EMIStartDate.toString().split("T")[0],
-      EMIEndDate: newLoan.EMIEndDate.toString().split("T")[0],
-      NOCDate: newLoan.NOCDate.toString().split("T")[0],
+      AgreementDate: newLoan?.AgreementDate.toString().split("T")[0],
+      FirstAutoDebitDate: newLoan?.FirstAutoDebitDate.toString().split("T")[0],
+      EMIStartDate: newLoan?.EMIStartDate.toString().split("T")[0],
+      EMIEndDate: newLoan?.EMIEndDate.toString().split("T")[0],
+      NOCDate: newLoan?.NOCDate.toString().split("T")[0],
       ModelId: null,
     };
     try {
@@ -580,7 +561,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
     if (!rawValue) return;
 
     const emiStart = computeEMIStartDate(rawValue);
-    const endDate = computeEndDate(emiStart, newLoan.Tenure);
+    const endDate = computeEndDate(emiStart, newLoan?.Tenure);
 
     setnewLoan({
       ...newLoan,
@@ -607,12 +588,12 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
 
   // -------------------------------------------------------
   // HELPER: Get default FirstAutoDebitDate value on mount
-  // (called once if newLoan.FirstAutoDebitDate is not set)
+  // (called once if newLoan?.FirstAutoDebitDate is not set)
   // -------------------------------------------------------
   function getDefaultAutoDebitDate(newLoan, setnewLoan) {
     const today = new Date();
     const emiStart = computeEMIStartDate(today.toISOString().split("T")[0]);
-    const endDate = computeEndDate(emiStart, newLoan.Tenure);
+    const endDate = computeEndDate(emiStart, newLoan?.Tenure);
 
     setnewLoan({
       ...newLoan,
@@ -656,7 +637,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           <Form.Control
                             type="text"
                             name="Name"
-                            value={newLoan.Name || ""}
+                            value={newLoan?.Name || ""}
                             disabled
                             readOnly
                           />
@@ -667,7 +648,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           <Form.Label>UMRN Stutas</Form.Label>
                           <Form.Select
                             name="UMRNStatus"
-                            value={newLoan.UMRNStatus}
+                            value={newLoan?.UMRNStatus}
                             isInvalid={!!errors.UMRNStatus}
                             onChange={(e) => {
                               setnewLoan({
@@ -697,7 +678,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           <Form.Control
                             type="text"
                             name="UMRN"
-                            value={newLoan.UMRN || ""}
+                            value={newLoan?.UMRN || ""}
                             disabled
                             readOnly
                           />
@@ -709,7 +690,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           <Form.Control
                             type="text"
                             name="RejectedReason"
-                            value={newLoan.RejectedReason || ""}
+                            value={newLoan?.RejectedReason || ""}
                             disabled
                             readOnly
                           />
@@ -731,7 +712,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           <span style={{ color: "red" }}>*</span> Dealer
                         </Form.Label>
                         <LookupField
-                          value={{ Id: newLoan.Dealer }}
+                          value={{ Id: newLoan?.Dealer }}
                           entityName="dealers"
                           placeholder="Search Dealer"
                           where="s"
@@ -755,10 +736,10 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           <span style={{ color: "red" }}>*</span> Agent
                         </Form.Label>
                         <LookupField
-                          value={{ Id: newLoan.Agent }}
-                          entityName={`customers?Dealer=${newLoan.Dealer}&Agent=1`}
+                          value={{ Id: newLoan?.Agent }}
+                          entityName={`customers?Dealer=${newLoan?.Dealer}&Agent=1`}
                           placeholder="Search Agent"
-                          isDisabled={!newLoan.Dealer && true}
+                          isDisabled={!newLoan?.Dealer && true}
                           isInvalid={!!errors.Agent}
                           onSelect={(record) => {
                             setErrors({ ...errors, Agent: "" });
@@ -777,7 +758,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="DealerFileNumber"
-                          value={newLoan.DealerFileNumber ?? ""}
+                          value={newLoan?.DealerFileNumber ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -802,7 +783,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         </Form.Label>
                         <Form.Select
                           name="ConditionType"
-                          value={newLoan.ConditionType ?? ""}
+                          value={newLoan?.ConditionType ?? ""}
                           isInvalid={!!errors.ConditionType}
                           onChange={(e) => {
                             setnewLoan({
@@ -829,7 +810,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                             classNamePrefix="react-select"
                             options={products}
                             value={products.find(
-                              (option) => option.value === newLoan.Model
+                              (option) => option.value === newLoan?.Model
                             )}
                             placeholder="Select..."
                             isSearchable
@@ -861,7 +842,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         </Form.Label>
                         <ModelMonthSelect
                           value={
-                            newLoan.ModelMonth || new Date().getMonth() + 1
+                            newLoan?.ModelMonth || new Date().getMonth() + 1
                           }
                           onChange={(month) => {
                             setnewLoan({
@@ -878,7 +859,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           <span className="text-danger">*</span> Model Year
                         </Form.Label>
                         <ModelYearSelect
-                          value={newLoan.ModelYear ?? ""}
+                          value={newLoan?.ModelYear ?? ""}
                           onChange={(month) => {
                             setnewLoan({
                               ...newLoan,
@@ -894,7 +875,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="CCPower"
-                          value={newLoan.CCPower}
+                          value={newLoan?.CCPower}
                           disabled
                         />
                       </Form.Group>
@@ -906,7 +887,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         </Form.Label>
                         <Form.Select
                           name="InsuranceType"
-                          value={newLoan.InsuranceType ?? ""}
+                          value={newLoan?.InsuranceType ?? ""}
                           isInvalid={!!errors.InsuranceType}
                           onChange={(e) => {
                             setnewLoan({
@@ -929,7 +910,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="ChasisNo"
-                          value={newLoan.ChasisNo ?? ""}
+                          value={newLoan?.ChasisNo ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -945,7 +926,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="EngineNo"
-                          value={newLoan.EngineNo ?? ""}
+                          value={newLoan?.EngineNo ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -963,7 +944,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="RegistrationNo"
-                          value={newLoan.RegistrationNo ?? ""}
+                          value={newLoan?.RegistrationNo ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -979,7 +960,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="Color"
-                          value={newLoan.Color}
+                          value={newLoan?.Color}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -1009,7 +990,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                             setnewLoan({ ...newLoan, DefaultValues: false });
                           }}
                           fixedDecimalScale={true}
-                          value={newLoan.TotalPrice ?? ""}
+                          value={newLoan?.TotalPrice ?? ""}
                           isInvalid={!!errors.TotalPrice}
                           onValueChange={handleTotalAmountChange}
                           customInput={Form.Control}
@@ -1029,7 +1010,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           prefix="₹"
                           decimalScale={2}
                           fixedDecimalScale={true}
-                          value={newLoan.DownPayment ?? ""}
+                          value={newLoan?.DownPayment ?? ""}
                           onInput={() =>
                             setnewLoan((prev) => ({
                               ...prev,
@@ -1054,7 +1035,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           prefix="₹"
                           decimalScale={2}
                           fixedDecimalScale={true}
-                          value={newLoan.DisburseAmount ?? ""}
+                          value={newLoan?.DisburseAmount ?? ""}
                           customInput={Form.Control}
                           readOnly
                         />
@@ -1066,14 +1047,14 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           type="checkbox"
                           label="Default Values"
                           name="DefaultValues"
-                          checked={newLoan.DefaultValues || true} // ✅ use checked instead of value
+                          checked={newLoan?.DefaultValues || true} // ✅ use checked instead of value
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
                               DefaultValues: e.target.checked,
                             });
                             if (e.target.checked) {
-                              getAmountDetails(newLoan.ModelId);
+                              getAmountDetails(newLoan?.ModelId);
                             }
                           }}
                         />
@@ -1088,7 +1069,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="RateOfInterest"
-                          value={newLoan.RateOfInterest ?? ""}
+                          value={newLoan?.RateOfInterest ?? ""}
                           onInput={() => {
                             setnewLoan({ ...newLoan, DefaultValues: false });
                           }}
@@ -1108,7 +1089,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="Tenure"
-                          value={newLoan.Tenure ?? ""}
+                          value={newLoan?.Tenure ?? ""}
                           isInvalid={!!errors.Tenure}
                           onChange={handleTenureChange}
                           onInput={() => {
@@ -1130,7 +1111,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           prefix="₹"
                           decimalScale={2}
                           fixedDecimalScale={true}
-                          value={newLoan.EMIAmount ?? ""}
+                          value={newLoan?.EMIAmount ?? ""}
                           customInput={Form.Control}
                           isInvalid={!!errors.EMIAmount}
                           name="EMIAmount"
@@ -1149,7 +1130,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Label>Calculate Term</Form.Label>
                         <Form.Select
                           name="CalculateTerm"
-                          value={newLoan.CalculateTerm ?? ""}
+                          value={newLoan?.CalculateTerm ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -1175,7 +1156,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           prefix="₹"
                           decimalScale={2}
                           fixedDecimalScale={true}
-                          value={newLoan.RemainingAmountWithInterest ?? ""}
+                          value={newLoan?.RemainingAmountWithInterest ?? ""}
                           customInput={Form.Control}
                           readOnly
                           disabled
@@ -1191,7 +1172,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           prefix="₹"
                           decimalScale={2}
                           fixedDecimalScale={true}
-                          value={newLoan.FileCharge || ""}
+                          value={newLoan?.FileCharge || ""}
                           customInput={Form.Control}
                           onValueChange={(values) => {
                             const { floatValue } = values;
@@ -1212,7 +1193,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           prefix="₹"
                           decimalScale={2}
                           fixedDecimalScale={true}
-                          value={newLoan.RTOCharge || ""}
+                          value={newLoan?.RTOCharge || ""}
                           customInput={Form.Control}
                           onValueChange={(values) => {
                             const { floatValue } = values;
@@ -1233,7 +1214,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           prefix="₹"
                           decimalScale={2}
                           fixedDecimalScale={true}
-                          value={newLoan.DealerComission || ""}
+                          value={newLoan?.DealerComission || ""}
                           customInput={Form.Control}
                           onValueChange={(values) => {
                             const { floatValue } = values;
@@ -1256,7 +1237,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           prefix="₹"
                           decimalScale={2}
                           fixedDecimalScale={true}
-                          value={newLoan.AgentComission || ""}
+                          value={newLoan?.AgentComission || ""}
                           customInput={Form.Control}
                           onValueChange={(values) => {
                             const { floatValue } = values;
@@ -1286,7 +1267,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           type="date"
                           name="AgreementDate"
                           value={
-                            helperMethods.formatDate(newLoan.AgreementDate) ||
+                            helperMethods.formatDate(newLoan?.AgreementDate) ||
                             new Date().toISOString().split("T")[0]
                           }
                           isInvalid={!!errors.AgreementDate}
@@ -1313,7 +1294,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           isInvalid={!!errors.FirstAutoDebitDate}
                           value={
                             helperMethods.formatDate(
-                              newLoan.FirstAutoDebitDate
+                              newLoan?.FirstAutoDebitDate
                             ) || getDefaultAutoDebitDate(newLoan, setnewLoan)
                           }
                           onChange={(e) =>
@@ -1338,7 +1319,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           type="date"
                           name="EMIStartDate"
                           isInvalid={!!errors.EMIStartDate}
-                          value={helperMethods.formatDate(newLoan.EMIStartDate)}
+                          value={helperMethods.formatDate(newLoan?.EMIStartDate)}
                           onChange={handleChange}
                           readOnly
                         />
@@ -1356,7 +1337,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           type="date"
                           name="EMIEndDate"
                           isInvalid={!!errors.EMIEndDate}
-                          value={helperMethods.formatDate(newLoan.EMIEndDate)}
+                          value={helperMethods.formatDate(newLoan?.EMIEndDate)}
                           onChange={handleChange}
                           readOnly
                         />
@@ -1370,7 +1351,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Label>Payment Options</Form.Label>
                         <Form.Select
                           name="PaymentOptions"
-                          value={newLoan.PaymentOptions ?? ""}
+                          value={newLoan?.PaymentOptions ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -1396,7 +1377,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                       <span className="text-danger">*</span> Hirer
                     </Form.Label>
                     <LookupField
-                      value={{ Id: newLoan.Hirer ?? "" }}
+                      value={{ Id: newLoan?.Hirer ?? "" }}
                       entityName={`customers?Hirer=1`}
                       placeholder="Search Hirer"
                       isCreateable="true"
@@ -1420,7 +1401,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                   <Form.Group className="mb-3">
                     <Form.Label>Guarantor</Form.Label>
                     <LookupField
-                      value={{ Id: newLoan.Guarantor ?? "" }}
+                      value={{ Id: newLoan?.Guarantor ?? "" }}
                       entityName={`customers?Guarantor=1`}
                       placeholder="Search Guarantor"
                       lookupData={{ Guarantor: 1 }}
@@ -1444,7 +1425,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                     <Form.Label>Referrer 1</Form.Label>
 
                     <LookupField
-                      value={{ Id: newLoan.Referrer1 ?? "" }}
+                      value={{ Id: newLoan?.Referrer1 ?? "" }}
                       entityName={`customers?Referrer=1`}
                       placeholder="Search Referrer"
                       isCreateable="true"
@@ -1467,7 +1448,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                     <Form.Label>Referrer 2</Form.Label>
 
                     <LookupField
-                      value={{ Id: newLoan.Referrer2 ?? "" }}
+                      value={{ Id: newLoan?.Referrer2 ?? "" }}
                       entityName={`customers?Referrer=1`}
                       placeholder="Search Referrer"
                       isCreateable="true"
@@ -1549,7 +1530,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           type="date"
                           name="NOCDate"
                           defaultValue={
-                            helperMethods.formatDate(newLoan.NOCDate) ||
+                            helperMethods.formatDate(newLoan?.NOCDate) ||
                             new Date().toISOString().split("T")[0]
                           }
                         />
@@ -1561,7 +1542,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="BillNo"
-                          value={newLoan.BillNo ?? ""}
+                          value={newLoan?.BillNo ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -1577,7 +1558,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="RCNo"
-                          value={newLoan.RCNo ?? ""}
+                          value={newLoan?.RCNo ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -1593,7 +1574,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="KeyNo"
-                          value={newLoan.KeyNo ?? ""}
+                          value={newLoan?.KeyNo ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -1609,7 +1590,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="InsurancePolicyNo"
-                          value={newLoan.InsurancePolicyNo ?? ""}
+                          value={newLoan?.InsurancePolicyNo ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -1623,7 +1604,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                       <Form.Group className="mb-3">
                         <Form.Label>Insurance Company Name</Form.Label>
                         <LookupField
-                          value={{ Id: newLoan.InsuranceCompanyNameId ?? "" }}
+                          value={{ Id: newLoan?.InsuranceCompanyNameId ?? "" }}
                           entityName="insurancecompanies"
                           placeholder="Search Company"
                           where="s"
@@ -1641,7 +1622,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                       <Form.Group className="mb-3">
                         <Form.Label>Customer Bank Name</Form.Label>
                         <LookupField
-                          value={{ Id: newLoan.CustomerBankNameId ?? "" }}
+                          value={{ Id: newLoan?.CustomerBankNameId ?? "" }}
                           entityName="banks"
                           placeholder="Search Bank"
                           where="s"
@@ -1670,7 +1651,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="BankIFSC"
-                          value={newLoan.BankIFSC ?? ""}
+                          value={newLoan?.BankIFSC ?? ""}
                           maxLength={11}
                           placeholder="ABCD0123456"
                           onChange={(e) => {
@@ -1683,23 +1664,23 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                             });
                           }}
                           isInvalid={
-                            newLoan.BankIFSC &&
-                            newLoan.BankIFSC.length === 11 &&
-                            !IFSC_REGEX.test(newLoan.BankIFSC)
+                            newLoan?.BankIFSC &&
+                            newLoan?.BankIFSC.length === 11 &&
+                            !IFSC_REGEX.test(newLoan?.BankIFSC)
                           }
                         />
 
                         {/* Live validation block */}
-                        {newLoan.BankIFSC && (
+                        {newLoan?.BankIFSC && (
                           <>
-                            {newLoan.BankIFSC.length < 11 && (
+                            {newLoan?.BankIFSC.length < 11 && (
                               <small style={{ color: "red" }}>
                                 IFSC must be exactly 11 characters
                               </small>
                             )}
 
-                            {newLoan.BankIFSC.length === 11 &&
-                              (IFSC_REGEX.test(newLoan.BankIFSC) ? (
+                            {newLoan?.BankIFSC.length === 11 &&
+                              (IFSC_REGEX.test(newLoan?.BankIFSC) ? (
                                 <small style={{ color: "green" }}>
                                   Valid IFSC Code
                                 </small>
@@ -1723,7 +1704,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="BankMICR"
-                          value={newLoan.BankMICR ?? ""}
+                          value={newLoan?.BankMICR ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -1739,7 +1720,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="BankAccountNumber"
-                          value={newLoan.BankAccountNumber ?? ""}
+                          value={newLoan?.BankAccountNumber ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -1755,7 +1736,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="BankBranchName"
-                          value={newLoan.BankBranchName ?? ""}
+                          value={newLoan?.BankBranchName ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -1771,7 +1752,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
 
                         <Form.Select
                           name="AccountType"
-                          value={newLoan.AccountType ?? ""}
+                          value={newLoan?.AccountType ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -1795,7 +1776,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="test"
                           name="CustomerBankPhoneNumber"
-                          value={newLoan.CustomerBankPhoneNumber ?? ""}
+                          value={newLoan?.CustomerBankPhoneNumber ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -1811,7 +1792,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="NumberOfCheques"
-                          value={newLoan.NumberOfCheques ?? ""}
+                          value={newLoan?.NumberOfCheques ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -1827,7 +1808,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="ChequeNumber1"
-                          value={newLoan.ChequeNumber1 ?? ""}
+                          value={newLoan?.ChequeNumber1 ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -1843,7 +1824,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="ChequeNumber2"
-                          value={newLoan.ChequeNumber2 ?? ""}
+                          value={newLoan?.ChequeNumber2 ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -1859,7 +1840,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="ChequeNumber3"
-                          value={newLoan.ChequeNumber3 ?? ""}
+                          value={newLoan?.ChequeNumber3 ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -1875,7 +1856,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="ChequeNumber4"
-                          value={newLoan.ChequeNumber4 ?? ""}
+                          value={newLoan?.ChequeNumber4 ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -1891,7 +1872,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                         <Form.Control
                           type="text"
                           name="ChequeNumber5"
-                          value={newLoan.ChequeNumber5 ?? ""}
+                          value={newLoan?.ChequeNumber5 ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -1908,7 +1889,7 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
                           as="textarea"
                           rows={3}
                           name="Description"
-                          value={newLoan.Description ?? ""}
+                          value={newLoan?.Description ?? ""}
                           onChange={(e) => {
                             setnewLoan({
                               ...newLoan,
@@ -1972,7 +1953,8 @@ const NewLoanModal = ({ showLoanModal, hideLoanModal, fetchLoans, record }) => {
     return id.length >= length ? id.slice(0, length) : id;
   }
 };
-function getEmptyLoan() {
+async function getEmptyLoan() {
+  const defaultData = await helperMethods.getEntityDetails('loandefaultvalue');
   return {
     Dealer: "",
     Agent: "",
@@ -1990,11 +1972,11 @@ function getEmptyLoan() {
     TotalPrice: "",
     DownPayment: "",
     DisburseAmount: "",
-    RateOfInterest: 15,
-    Tenure: 12,
+    RateOfInterest: defaultData.loanroi || 15,
+    Tenure: defaultData.tenure || 12,
     EMIAmount: "",
     RemainingAmountWithInterest: "",
-    FileCharge: "",
+    FileCharge: defaultData.filecharge || "",
     RTOCharge: "",
     DealerComission: "",
     AgentComission: "",

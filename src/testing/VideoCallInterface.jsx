@@ -154,8 +154,7 @@ export default function VideoCallInterface() {
           showNotification('Call started. Participants joined.');
         }, 1000);
       } catch (err) {
-        console.log(err)
-        showNotification('Failed to start call');
+        showNotification('Failed to start call' + err);
       }
     } else {
       await simulateWebRTC.disconnect();

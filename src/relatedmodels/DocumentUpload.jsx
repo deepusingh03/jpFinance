@@ -114,7 +114,6 @@ const DocumentUpload = ({ show, handleClose, record, data }) => {
       formData.append(doc, file);
     });
     formData.append("fileIds", JSON.stringify(fileIdMap));
-console.log('Documents :: ',formData);
     try {
       const res = await fetch(`${apiData.PORT}/api/documents/upload`, {
         method: "POST",

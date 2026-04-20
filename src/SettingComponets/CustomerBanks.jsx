@@ -37,9 +37,8 @@ export default function CustomerBanks() {
   async function fetchBanks() {
     setLoading(true);
     try {
-      const res = await fetch(`${apiData.PORT}/api/get/banks`);
-      const data = await res.json();
-      const bankList = data.data || [];
+      const data = await helperMethods.getEntityDetails(`banks`);
+      const bankList = data;
       setBanks(bankList);
       setFilteredBanks(bankList);
     } catch {

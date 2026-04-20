@@ -5,6 +5,7 @@ import RecordLinkField from "../components/RecordLinkField";
 import { helperMethods } from "../utility/CMPhelper";
 import { toast } from "react-toastify";
 import { apiData } from "../utility/api";
+import { format } from "date-fns";
 
 // const API = 'https://jpfincorp.com';
 
@@ -29,16 +30,16 @@ export default function LoanItemDetail({ isEdit, resetButton }) {
   async function fetchLoanItem() {
     try {
       setLoading(true);
-      const res = await fetch(`${apiData.PORT}/api/get/loanitems?Id=${id}`);
-      const data = await res.json();
-
-      if (!res.ok || !data.data || data.data.length === 0) {
+      const data = await helperMethods.getEntityDetails(`loanitems?Id=${id}`);
+      console.log(data);
+      if (!data || data.length === 0) {
         toast.error(data.error || "Failed to load loanitems");
         setLoanItem(null);
         return;
       }
 
-      const record = data.data[0];
+      const record = data[0];
+      record.DueDate = record.DueDate.split('T')[0]
       setLoanItem(record);
       setForm(record);
     } catch (err) {
@@ -89,7 +90,7 @@ export default function LoanItemDetail({ isEdit, resetButton }) {
         ModifiedBy: helperMethods.fetchUser(),
         ModifiedDate: helperMethods.dateToString(),
       };
-
+      console.log("payload ::", payload);
       const res = await fetch(`${apiData.PORT}/api/loanitems/update`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -125,6 +126,18 @@ export default function LoanItemDetail({ isEdit, resetButton }) {
     const { editable = true, textarea = false, type = "text" } = options;
     const value = editMode ? form[name] : loanItem[name];
 
+    // currency formatter (INR)
+    const formatCurrency = (val) => {
+      if (!val) return "—";
+      return new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        minimumFractionDigits: 0,
+      }).format(val);
+    };
+
+    const isAmountField = label.toLowerCase() === "amount";
+
     return (
       <Form.Group className="mb-3">
         <Form.Label className="fw-semibold">{label}</Form.Label>
@@ -137,7 +150,13 @@ export default function LoanItemDetail({ isEdit, resetButton }) {
               rows={textarea ? 4 : undefined}
               value={value || ""}
               onChange={(e) => {
-                const val = e.target.value;
+                let val = e.target.value;
+
+                // allow only numbers for amount field
+                if (isAmountField) {
+                  val = val.replace(/[^0-9]/g, "");
+                }
+
                 setForm((prev) => ({ ...prev, [name]: val }));
                 setErrors((prev) => ({ ...prev, [name]: "" }));
               }}
@@ -148,7 +167,9 @@ export default function LoanItemDetail({ isEdit, resetButton }) {
             </Form.Control.Feedback>
           </>
         ) : (
-          <div className="p-2 bg-light rounded">{value || "—"}</div>
+          <div className="p-2 bg-light rounded">
+            {isAmountField ? formatCurrency(value) : value || "—"}
+          </div>
         )}
       </Form.Group>
     );
@@ -159,34 +180,8 @@ export default function LoanItemDetail({ isEdit, resetButton }) {
       <div className="card p-4 shadow-sm rounded-4">
         {/* HEADER */}
         <div className="d-flex justify-content-between mb-3">
-          {/* <Button
-            variant="outline-secondary"
-            onClick={() => navigate("/loanitems")}
-          >
-            ← Back
-          </Button> */}
 
           <h2 className="fw-bold">Loan Item Details</h2>
-
-          {/* {!editMode ? (
-            <Button onClick={() => setEditMode(true)}>Edit</Button>
-          ) : (
-            <div className="d-flex gap-2">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setEditMode(false);
-                  setForm(loanItem);
-                  setErrors({});
-                }}
-              >
-                Cancel
-              </Button>
-              <Button variant="dark" onClick={handleSave} disabled={saving}>
-                {saving ? "Saving..." : "Save"}
-              </Button>
-            </div>
-          )} */}
         </div>
 
         {/* ================= LOAN ITEM INFO ================= */}
@@ -208,8 +203,7 @@ export default function LoanItemDetail({ isEdit, resetButton }) {
               <Form.Group className="mb-3">
                 <RecordLinkField
                   label="Loan"
-                  id={loanItem.loan_id}
-                  firstName={loanItem.loan_Name}
+                  data={loanItem.loans__Loan}
                   table="loan"
                 />
               </Form.Group>
@@ -223,13 +217,21 @@ export default function LoanItemDetail({ isEdit, resetButton }) {
                   <>
                     <Form.Control
                       type="date"
-                      value={form.DueDate.split("T")[0]}
-                      onChange={(e) =>
+                      value={helperMethods.toDateInputFormat(form.DueDate)}
+                      onChange={(e) => {
+                        const value = e.target.value; // "YYYY-MM-DD"
+                      
+                        const [year, month, day] = value.split("-");
+                      
+                        const isoDate = new Date(
+                          Date.UTC(year, month - 1, day)
+                        ).toISOString();
+                      console.log('isoDate :: ',isoDate)
                         setForm((prev) => ({
                           ...prev,
-                          DueDate: e.target.value,
-                        }))
-                      }
+                          DueDate: isoDate.split('T')[0],
+                        }));
+                      }}
                       isInvalid={!!errors.DueDate}
                     />
                     <Form.Control.Feedback type="invalid">
@@ -238,7 +240,7 @@ export default function LoanItemDetail({ isEdit, resetButton }) {
                   </>
                 ) : (
                   <div className="p-2 bg-light rounded">
-                    {helperMethods.handleDateFormat(loanItem.DueDate)}
+                    {format(new Date(loanItem.DueDate), "dd/MM/yyyy")}
                   </div>
                 )}
               </Form.Group>
@@ -265,7 +267,6 @@ export default function LoanItemDetail({ isEdit, resetButton }) {
                       <option>EMI Moratorium</option>
                       <option>Sent to Bank</option>
                       <option>Rejected</option>
-
                     </Form.Select>
                     <Form.Control.Feedback type="invalid">
                       {errors.Status}
@@ -292,9 +293,7 @@ export default function LoanItemDetail({ isEdit, resetButton }) {
             <div className="col-md-6">
               <RecordLinkField
                 label="Created By"
-                id={loanItem.createdby_id}
-                firstName={loanItem.createdby_firstname}
-                lastName={loanItem.createdby_lastname}
+                data={loanItem.users__CreatedBy}
                 table="user"
               />
             </div>
@@ -302,9 +301,7 @@ export default function LoanItemDetail({ isEdit, resetButton }) {
             <div className="col-md-6">
               <RecordLinkField
                 label="Modified By"
-                id={loanItem.modifiedby_id}
-                firstName={loanItem.modifiedby_firstname}
-                lastName={loanItem.modifiedby_lastname}
+                data={loanItem.users__ModifiedBy}
                 table="user"
               />
             </div>

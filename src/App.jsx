@@ -43,7 +43,6 @@ function App() {
         <Routes>
           {/* Public route - no UserProvider needed here */}
           <Route path="/login" element={<LoginPage />} />
-          
           {/* All protected routes will have access to UserContext */}
           <Route
             path="/"
@@ -53,7 +52,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/dealers"
             element={
@@ -70,7 +68,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/brands"
             element={
@@ -103,7 +100,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/details/childs/:entityType/:id/view"
             element={
@@ -112,7 +108,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/profile"
             element={
@@ -161,7 +156,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-LoanDefaultValues
+          LoanDefaultValues
           <Route
             path="/setting"
             element={
@@ -170,7 +165,6 @@ LoanDefaultValues
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/portal/loans"
             element={
@@ -179,7 +173,6 @@ LoanDefaultValues
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/portal/bank-response"
             element={
@@ -188,11 +181,11 @@ LoanDefaultValues
               </ProtectedRoute>
             }
           />
-           <Route
+          <Route
             path="/portal/emis"
             element={
               <ProtectedRoute>
-                <EMIPage/>
+                <EMIPage />
               </ProtectedRoute>
             }
           />
@@ -204,7 +197,6 @@ LoanDefaultValues
               </ProtectedRoute>
             }
           />
-          
           {/* Testing routes - optionally protect these too */}
           <Route
             path="/vcall"
@@ -214,7 +206,6 @@ LoanDefaultValues
               </ProtectedRoute>
             }
           />
-
           {/* Optional: Add a 404 route */}
           <Route
             path="*"

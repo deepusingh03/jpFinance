@@ -40,6 +40,7 @@ function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include", // 🔥 IMPORTANT (for refresh cookie)
         body: JSON.stringify(form),
       });
 
@@ -50,8 +51,9 @@ function LoginPage() {
 
       // Save Login State
       localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("userData", JSON.stringify(data.data));
-
+      localStorage.setItem("userData", JSON.stringify(data.data.user));
+      localStorage.setItem("accessToken", data.data.accessToken);
+      
       toast.success("Login Successful!");
       setTimeout(() => navigate("/"), 600);
     } catch (error) {

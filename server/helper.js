@@ -74,7 +74,22 @@ export function getFormattedDate(){
 
   return `${datePart}, ${timePart}`;
 };
+export async function getDefaultValues(db) {
+  const [rows] = await db.query(
+    "SELECT Type, Value FROM loandefaultvalue"
+  );
 
+  const formattedObject = rows.reduce((acc, item) => {
+    const key = item.Type.toLowerCase()
+      .replace(/\s+/g, "")
+      .replace(/^\w/, (c) => c.toLowerCase());
+
+    acc[key] = Number(item.Value);
+    return acc;
+  }, {});
+
+  return formattedObject;
+}
 export async function getCompanySettings(db) {
   const now = Date.now();
 

@@ -31,16 +31,14 @@ export default function PricebookDetail({ isEdit, resetButton }) {
   async function fetchPricebook() {
     try {
       setLoading(true);
-      const res = await fetch(`${apiData.PORT}/api/get/pricebook?Id=${id}`);
-      const data = await res.json();
-
-      if (!res.ok || !data.data || data.data.length === 0) {
+      const data = await helperMethods.getEntityDetails(`pricebook?Id=${id}`);
+      if (!data || data.length === 0) {
         toast.error(data.error || "Failed to load pricebook");
         setPricebook(null);
         return;
       }
 
-      const record = data.data[0];
+      const record = data[0];
       setPricebook(record);
       setForm(record);
     } catch (err) {
@@ -59,13 +57,12 @@ export default function PricebookDetail({ isEdit, resetButton }) {
   // SAVE
   // ------------------------
   async function handleSave() {
-
     try {
       setSaving(true);
       const payload = {
         ...form,
         ModifiedBy: helperMethods.fetchUser(),
-        ModifiedDate: helperMethods.dateToString()
+        ModifiedDate: helperMethods.dateToString(),
       };
       const res = await fetch(`${apiData.PORT}/api/pricebook/update`, {
         method: "PUT",
@@ -80,11 +77,10 @@ export default function PricebookDetail({ isEdit, resetButton }) {
         return;
       }
 
-      toast.success(payload.Name+" was updated successfully.");
+      toast.success(payload.Name + " was updated successfully.");
       setEditMode(false);
-      resetButton()
+      resetButton();
       fetchPricebook();
-
     } catch {
       toast.error("Unexpected error.");
     } finally {
@@ -99,16 +95,15 @@ export default function PricebookDetail({ isEdit, resetButton }) {
   // FIELD RENDERER
   // ------------------------
   const renderField = (label, name, options = {}) => {
-    const { editable = true, type = "text",required = false  } = options;
+    const { editable = true, type = "text", required = false } = options;
     const value = editMode ? form[name] : pricebook[name];
 
     return (
       <Form.Group className="mb-3">
         <Form.Label className="fw-semibold">
-        {required && (
-            <span className="text-danger">* </span> 
-          )} 
-          {label}</Form.Label>
+          {required && <span className="text-danger">* </span>}
+          {label}
+        </Form.Label>
 
         {editMode && editable ? (
           <>
@@ -117,8 +112,8 @@ export default function PricebookDetail({ isEdit, resetButton }) {
               value={value || ""}
               onChange={(e) => {
                 const val = e.target.value;
-                setForm(prev => ({ ...prev, [name]: val }));
-                setErrors(prev => ({ ...prev, [name]: "" }));
+                setForm((prev) => ({ ...prev, [name]: val }));
+                setErrors((prev) => ({ ...prev, [name]: "" }));
               }}
               isInvalid={!!errors[name]}
             />
@@ -136,10 +131,9 @@ export default function PricebookDetail({ isEdit, resetButton }) {
   return (
     <div>
       <div className="card p-4 shadow-sm rounded-4">
-
         {/* HEADER */}
         <div className="d-flex justify-content-between align-items-center mb-3">
-         <h2 className="fw-bold mb-0">Pricebook Details</h2>
+          <h2 className="fw-bold mb-0">Pricebook Details</h2>
         </div>
 
         {/* ========================================================= */}
@@ -151,21 +145,21 @@ export default function PricebookDetail({ isEdit, resetButton }) {
           </h4>
 
           <div className="row">
-
             <div className="col-md-6">
-              {renderField("Pricebook Name", "PricebookName", { editable: false ,required:true})}
+              {renderField("Pricebook Name", "PricebookName", {
+                editable: false,
+                required: true,
+              })}
             </div>
 
             <div className="col-md-6">
               {/* Lookup: Dealer */}
               <Form.Group className="mb-3">
-                <RecordLinkField
-                isRequired="true"
-                  label="Dealer"
-                  id={pricebook.dealer_id}
-                  firstName={pricebook.dealer_Name}
-                  table="dealer"
-                />
+              <RecordLinkField
+                label="Dealer"
+                data={pricebook.dealers__Dealer}
+                table="dealer"
+              />
               </Form.Group>
             </div>
 
@@ -180,7 +174,10 @@ export default function PricebookDetail({ isEdit, resetButton }) {
                     label="Is Active"
                     checked={!!form.IsActive}
                     onChange={(e) =>
-                      setForm(prev => ({ ...prev, IsActive: e.target.checked ? 1 : 0 }))
+                      setForm((prev) => ({
+                        ...prev,
+                        IsActive: e.target.checked ? 1 : 0,
+                      }))
                     }
                   />
                 ) : (
@@ -190,7 +187,6 @@ export default function PricebookDetail({ isEdit, resetButton }) {
                 )}
               </Form.Group>
             </div>
-
           </div>
         </section>
 
@@ -203,24 +199,18 @@ export default function PricebookDetail({ isEdit, resetButton }) {
           </h4>
 
           <div className="row">
-
             <div className="col-md-6">
               <RecordLinkField
                 label="Created By"
-                id={pricebook.createdby_id}
-                firstName={pricebook.createdby_firstname}
-                lastName={pricebook.createdby_lastname}
+                data={pricebook.users__CreatedBy}
                 table="user"
               />
-
             </div>
 
             <div className="col-md-6">
               <RecordLinkField
                 label="Modified By"
-                id={pricebook.modifiedby_id}
-                firstName={pricebook.modifiedby_firstname}
-                lastName={pricebook.modifiedby_lastname}
+                data={pricebook.users__ModifiedBy}
                 table="user"
               />
             </div>
@@ -230,9 +220,10 @@ export default function PricebookDetail({ isEdit, resetButton }) {
             </div>
 
             <div className="col-md-6">
-              {renderField("Modified Date", "ModifiedDate", { editable: false })}
+              {renderField("Modified Date", "ModifiedDate", {
+                editable: false,
+              })}
             </div>
-
           </div>
         </section>
         {editMode ? (

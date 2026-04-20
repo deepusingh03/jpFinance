@@ -7,18 +7,25 @@ export const helperMethods = {
   },
   fetchUser() {
     const user = JSON.parse(localStorage.getItem("userData"));
-    if (user && user.user && user.user.Id) {
-      return user.user.Id;
-    }
-    return null;
+    return [user?.user?.Id, user?.Id].find(Boolean) || null;
   },
-  async fetchUserDetails (){
+  async fetchUserDetails() {
     const user = JSON.parse(localStorage.getItem("userData"));
-    if (!user || !user.user || !user.user.Id) return;
-    console.log('user ::',user);
-    const response = await fetch(`${apiData.PORT}/api/get/users?Id=${user.user.Id}`);
+    const token = localStorage.getItem("accessToken");
+    const uId = user?.Id || user?.user?.Id;
+
+    if (!uId) {
+      console.error("User ID not found");
+      return;
+    }
+    const response = await fetch(`${apiData.PORT}/api/get/users?Id=${uId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     const responseResult = await response.json();
-    if(!responseResult.success || !responseResult.data )return
+    if (!responseResult?.success || !responseResult?.data) return;
+
     return responseResult.data[0];
   },
   dateToString() {
@@ -33,17 +40,20 @@ export const helperMethods = {
     };
     return date.toLocaleString("en-GB", options).replace(" at ", ", ");
   },
-  handleDateFormat(value){
-    if(value){
-      if(value.toString().includes('T05:00:00.000Z') || value.toString().includes('00:00.000Z')){
+  handleDateFormat(value) {
+    if (value) {
+      if (
+        value.toString().includes("T05:00:00.000Z") ||
+        value.toString().includes("00:00.000Z")
+      ) {
         return format(new Date(value), "dd/MM/yyyy");
       }
-      return value
-    }else{
+      return value;
+    } else {
       return null;
     }
   },
-   generateId(length = 30) {
+  generateId(length = 30) {
     const timestamp = Date.now().toString(36); // adds time uniqueness
     const chars =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -65,7 +75,7 @@ export const helperMethods = {
     const id = timestamp + randomPart;
     return id.length >= length ? id.slice(0, length) : id;
   },
-   getUserName(field,data){
+  getUserName(field, data) {
     const value = data?.[field];
     if (!value) return null;
 
@@ -106,35 +116,45 @@ export const helperMethods = {
     if (f === "agent") {
       return {
         Id: value,
-        Name: ` ${data?.customers__Agent.FirstName || ""} ${data?.customers__Agent.LastName || ""}`.trim(),
+        Name: ` ${data?.customers__Agent.FirstName || ""} ${
+          data?.customers__Agent.LastName || ""
+        }`.trim(),
         Entity: "customers",
       };
     }
     if (f === "hirer") {
       return {
         Id: value,
-        Name: ` ${data?.customers__Hirer.FirstName || ""} ${data?.customers__Hirer.LastName || ""}`.trim(),
+        Name: ` ${data?.customers__Hirer.FirstName || ""} ${
+          data?.customers__Hirer.LastName || ""
+        }`.trim(),
         Entity: "customers",
       };
     }
     if (f === "guarantor") {
       return {
         Id: value,
-        Name: ` ${data?.customers__Guarantor.FirstName || ""} ${data?.customers__Guarantor.LastName || ""}`.trim(),
+        Name: ` ${data?.customers__Guarantor.FirstName || ""} ${
+          data?.customers__Guarantor.LastName || ""
+        }`.trim(),
         Entity: "customers",
       };
     }
     if (f === "referrer1") {
       return {
         Id: value,
-        Name: ` ${data?.customers__Referrer1.FirstName || ""} ${data?.customers__Referrer1.LastName || ""}`.trim(),
+        Name: ` ${data?.customers__Referrer1.FirstName || ""} ${
+          data?.customers__Referrer1.LastName || ""
+        }`.trim(),
         Entity: "customers",
       };
     }
     if (f === "referrer2") {
       return {
         Id: value,
-        Name: ` ${data?.customers__Referrer2.FirstName || ""} ${data?.customers__Referrer2.LastName || ""}`.trim(),
+        Name: ` ${data?.customers__Referrer2.FirstName || ""} ${
+          data?.customers__Referrer2.LastName || ""
+        }`.trim(),
         Entity: "customers",
       };
     }
@@ -170,5 +190,58 @@ export const helperMethods = {
     }
     return null;
   },
-  
+  async getDefaultValues() {
+    const response = await fetch(`${apiData.PORT}/api/get/loandefaultvalue`);
+    const responseResult = await response.json();
+    if (!responseResult || !responseResult.data) return;
+    const formattedObject = responseResult.data.reduce((acc, item) => {
+      const key = item.Type.toLowerCase()
+        .replace(/\s+/g, "")
+        .replace(/^\w/, (c) => c.toLowerCase());
+
+      acc[key] = Number(item.Value); // convert to number
+      return acc;
+    }, {});
+    return formattedObject;
+  },
+
+  async getEntityDetails(entityName) {
+    try {
+      const token = localStorage.getItem("accessToken");
+
+      const res = await fetch(`${apiData.PORT}/api/get/${entityName}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem("userData");
+        localStorage.removeItem("isLoggedIn");
+        localStorage.removeItem("accessToken");
+        window.location.href = "/";
+        throw new Error("Session expired");
+      }
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch data");
+      }
+      const data = await res.json();
+      return data.data || [];
+    } catch (error) {
+      console.error("API Error:", error.message);
+      return [];
+    }
+  },
+   formatCurrency(amount){
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+    }).format(amount);
+  },
+   toDateInputFormat(dateStr){
+    const d = new Date(dateStr);
+    const offset = d.getTimezoneOffset();
+    const local = new Date(d.getTime() - offset * 60000);
+    return local.toISOString().split("T")[0];
+  },
 };

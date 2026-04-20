@@ -1,16 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
-import {
-  Card,
-  Button,
-  Row,
-  Col,
-  Alert,
-  Tabs,
-  Tab,
-  Badge,
-} from "react-bootstrap";
+import { Badge, Tabs, Tab } from "react-bootstrap";
 import RecordRelatedList from "./RecordRelatedList";
-import EditModals from "../utility/EditModals";
 import DeleteConfirmationModal from "./DeleteConfirmationModal";
 import DealerDetail from "../DetailPage/DealerDetail";
 import LoanDetail from "../DetailPage/LoanDetail";
@@ -23,292 +13,243 @@ import UserDetail from "../DetailPage/UserDetail";
 import LoanItemDetail from "../DetailPage/LoanItemDetail";
 import DocumentPreview from "../DetailPage/DocumentPreview";
 
-function DetailsPage({ data, onBack, childs, refresh, entityName }) {
-  const [showModal, setShowModal] = useState(false);
+// ── Constants ─────────────────────────────────────────────────────────────────
+const NON_EDITABLE_ENTITIES = ["users", "documents"];
+
+const STATUS_STYLES = {
+  due:       { background: "#fef9c3", color: "#854d0e" },
+  success:   { background: "#dcfce7", color: "#166534" },
+  "over due":{ background: "#fee2e2", color: "#991b1b" },
+};
+
+const ENTITY_DETAIL_MAP = {
+  dealers:        DealerDetail,
+  customers:      CustomerDetail,
+  brands:         BrandDetail,
+  products:       ProductDetail,
+  pricebook:      PricebookDetail,
+  pricebookentry: PricebookEntryDetail,
+  users:          UserDetail,
+  loans:          LoanDetail,
+  loanitems:      LoanItemDetail,
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function getDisplayName(data, entityName) {
+  if (entityName?.toLowerCase() === "pricebook") return data.PricebookName;
+  if (data?.Name) return data.Name;
+  if (data?.FirstName || data?.LastName)
+    return `${data.FirstName ?? ""} ${data.LastName ?? ""}`.trim();
+  return "Record Details";
+}
+
+function StatusBadge({ status }) {
+  if (!status) return null;
+  const key = status.toLowerCase();
+  const style = STATUS_STYLES[key] ?? { background: "#f3f4f6", color: "#374151" };
+  return (
+    <span style={{
+      ...style,
+      fontSize: 12, fontWeight: 600, padding: "3px 10px",
+      borderRadius: 20, letterSpacing: "0.02em",
+    }}>
+      {status}
+    </span>
+  );
+}
+
+function IconBtn({ onClick, icon, label, variant = "default" }) {
+  const variantStyles = {
+    default: { background: "#fff",      color: "#374151", borderColor: "#e5e7eb" },
+    danger:  { background: "#fff5f5",   color: "#dc2626", borderColor: "#fca5a5" },
+  };
+  const s = variantStyles[variant] ?? variantStyles.default;
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "7px 14px", fontSize: 13, fontWeight: 500,
+        border: `1.5px solid ${s.borderColor}`,
+        borderRadius: 8, cursor: "pointer",
+        background: s.background, color: s.color,
+        fontFamily: "inherit", transition: "opacity 0.15s",
+      }}
+      onMouseOver={e => e.currentTarget.style.opacity = "0.8"}
+      onMouseOut={e => e.currentTarget.style.opacity = "1"}
+    >
+      <i className={`bi bi-${icon}`} style={{ fontSize: 13 }} />
+      {label}
+    </button>
+  );
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
+export default function DetailsPage({ data, onBack, childs, refresh, entityName }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [isEditMode, setisEditMode] = useState(false);
-  const [selectTab, setSelectedTab] = useState("details");
+  const [isEditMode, setIsEditMode]           = useState(false);
+  const [activeTab, setActiveTab]             = useState("details");
 
-  const resetButton = () => {
-    setisEditMode(false);
-  };
-  // ---------------------------------------------------------
-  // Helpers
-  // ---------------------------------------------------------
-  const getDisplayName = () => {
-    if(entityName.toLowerCase() === "pricebook") return data.PricebookName;
-    if (data?.Name) return data.Name;
+  const isNonEditable = NON_EDITABLE_ENTITIES.includes(entityName);
+  const displayName   = data ? getDisplayName(data, entityName) : "";
 
-    if (data?.FirstName || data?.LastName)
-      return `${data.FirstName || ""} ${data.LastName || ""}`.trim();
-    return "Record Details";
-  };
-  // ---------------------------------------------------------
-  // Effects
-  // ---------------------------------------------------------
   useEffect(() => {
-    document.title = `${getDisplayName()} | JP Finance`;
-    // buildImageURL();
-  }, [data]);
+    if (displayName) document.title = `${displayName} | JP Finance`;
+  }, [displayName]);
 
-  const handleDeleteRecord = () => setShowDeleteModal(true);
-  const cancelDelete = () => setShowDeleteModal(false);
-
-  const onConfirm = () => {
-    onBack?.();
-    refresh?.();
-  };
-  // ---------------------------------------------------------
-  // Fields & Child Mapping
-  // ---------------------------------------------------------
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const relatedChilds = useMemo(() => {
-    return childs?.map((item) => {
+  const relatedChildren = useMemo(() =>
+    childs?.map((item) => {
       const [entity, parentField] = item.split("-");
       return { entity, parentField };
-    });
-  }, [childs]);
-  const openEditModal = () => {
-    setisEditMode(true);
-  }; //setShowModal(true);
-  const closeModal = () => {
-    setShowModal(false);
-    refresh?.();
-    // buildImageURL();
-  };
-  const handleTabChange = (tabKey) => {
-    setSelectedTab(tabKey);
-  };
-  const getBadgeVariant = (status) => {
-    switch (status) {
-      case "due":
-        return { bg: "warning", text: "dark" };
-      case "success":
-        return { bg: "success", text: "light" };
-      case "over due":
-        return { bg: "danger", text: "light" };
-      default:
-        return { bg: "secondary", text: "light" };
-    }
-  };
+    }) ?? [],
+  [childs]);
 
-  if (!data)
-    return (
-      <div className="container mt-5">
-        <Alert
-          variant="light"
-          className="text-center py-5 rounded-4 border-0 shadow-sm"
-        >
-          <i className="bi bi-inbox display-4 text-muted mb-3"></i>
-          <h5 className="fw-semibold">No record selected</h5>
-          <p className="text-muted">Please choose a record to view details.</p>
-        </Alert>
-      </div>
-    );
+  const DetailComponent = ENTITY_DETAIL_MAP[entityName] ?? null;
 
-  // ---------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------
+  if (!data) return (
+    <div style={{ padding: "48px 24px", textAlign: "center", color: "#9ca3af", fontSize: 14 }}>
+      No record selected. Please choose a record to view details.
+    </div>
+  );
+
   return (
     <>
-      <div className="container mt-4">
-        <Card className="shadow-lg rounded-4 border-0">
-          {/* ---------------- HEADER ---------------- */}
-          <div className="bg-gradient-primary text-white p-4">
-            <div className="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
-              {/* TITLE SECTION */}
-              <div>
-                <div className="d-flex align-items-center gap-3 mb-2">
-                  <h2 className="fw-bold text-primary mb-0">
-                    {getDisplayName()}
-                  </h2>
+      <div className="container mt-4" style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif" }}>
+        <div style={{
+          background: "#fff",
+          border: `1.5px solid ${isEditMode ? "#6366f1" : "#e5e7eb"}`,
+          borderRadius: 14,
+          overflow: "hidden",
+          boxShadow: "0 1px 6px rgba(0,0,0,0.07)",
+          transition: "border-color 0.2s",
+        }}>
 
-                  {data?.Status && (
-                    <Badge
-                      bg={getBadgeVariant(data.Status.toLowerCase()).bg}
-                      text={getBadgeVariant(data.Status.toLowerCase()).text}
-                      className="px-3 py-2"
-                    >
-                      {data.Status}
-                    </Badge>
+          {/* ── Header ── */}
+          <div style={{
+            background: "linear-gradient(135deg, #f8f7ff 0%, #f0f9ff 100%)",
+            borderBottom: "1px solid #ede9fe",
+            padding: "20px 24px",
+          }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+
+              {/* Title + status */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#111827" }}>
+                    {displayName}
+                  </h2>
+                  <StatusBadge status={data.Status} />
+                  {isEditMode && (
+                    <span style={{
+                      fontSize: 11, fontWeight: 600, padding: "2px 9px",
+                      background: "#ede9fe", color: "#6366f1", borderRadius: 20,
+                    }}>
+                      Editing
+                    </span>
                   )}
                 </div>
-                <small className="text-primary">
+                <span style={{ fontSize: 13, color: "#6b7280" }}>
                   View and manage record details
-                </small>
+                </span>
               </div>
 
-              {/* ACTION BUTTONS */}
-              <div className="d-flex gap-2 flex-wrap">
+              {/* Action buttons */}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                 {onBack && (
-                  <Button
-                    variant="light"
-                    onClick={onBack}
-                    className="d-flex gap-2"
-                  >
-                    <i className="bi bi-arrow-left"></i> Back
-                  </Button>
+                  <IconBtn onClick={onBack} icon="arrow-left" label="Back" />
                 )}
-                {entityName != "users" &&
-                  selectTab === "details" &&
-                  entityName != "documents" &&
-                  (!isEditMode ? (
-                    <Button
-                      variant="light"
-                      onClick={openEditModal}
-                      className="d-flex gap-2"
-                    >
-                      <i className="bi bi-pencil"></i> Edit
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="light"
-                      onClick={resetButton}
-                      className="d-flex gap-2"
-                    >
-                      <i className="bi bi-x-lg"></i> Cancel
-                    </Button>
-                  ))}
-
-                {entityName != "users" &&
-                  selectTab === "details" &&
-                  entityName != "documents" && (
-                    <Button
-                      variant="light"
-                      onClick={handleDeleteRecord}
-                      className="d-flex gap-2"
-                    >
-                      <i className="bi bi-trash"></i> Delete
-                    </Button>
-                  )}
+                {!isNonEditable && activeTab === "details" && (
+                  isEditMode
+                    ? <IconBtn onClick={() => setIsEditMode(false)} icon="x-lg" label="Cancel" />
+                    : <IconBtn onClick={() => setIsEditMode(true)} icon="pencil" label="Edit" />
+                )}
+                {!isNonEditable && activeTab === "details" && (
+                  <IconBtn
+                    onClick={() => setShowDeleteModal(true)}
+                    icon="trash"
+                    label="Delete"
+                    variant="danger"
+                  />
+                )}
               </div>
             </div>
           </div>
 
-          {/* ---------------- TABS ---------------- */}
-          <Tabs
-            defaultActiveKey="details"
-            className="px-4 pt-3"
-            fill
-            onSelect={(key) => handleTabChange(key)}
-          >
-            {/* {entityName} */}
-            {/* ----------- RELATED TAB ----------- */}
-            {entityName != "users" && entityName != "documents" && (
-              <Tab
-                eventKey="related"
-                title={
-                  <span className="d-flex align-items-center gap-2">
-                    <i className="bi bi-link-45deg"></i>
-                    Related Records
-                    {!!relatedChilds?.length && (
-                      <Badge bg="primary" pill>
-                        {relatedChilds.length}
-                      </Badge>
+          {/* ── Tabs ── */}
+          <div style={{ padding: "0 8px" }}>
+            <Tabs
+              activeKey={activeTab}
+              onSelect={setActiveTab}
+              className="px-3 pt-2"
+              fill
+            >
+              {/* Related tab — hidden for non-editable entities */}
+              {!isNonEditable && (
+                <Tab
+                  eventKey="related"
+                  title={
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                      <i className="bi bi-link-45deg" />
+                      Related
+                      {relatedChildren.length > 0 && (
+                        <Badge bg="primary" pill style={{ fontSize: 10 }}>
+                          {relatedChildren.length}
+                        </Badge>
+                      )}
+                    </span>
+                  }
+                >
+                  <div style={{ padding: "16px 8px" }}>
+                    {relatedChildren.length > 0 ? (
+                      relatedChildren.map((child, idx) => (
+                        <div key={idx} style={{ marginBottom: 12 }}>
+                          <RecordRelatedList details={{ ...child, Id: data.Id, data }} />
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ textAlign: "center", padding: "48px 0", color: "#9ca3af" }}>
+                        <i className="bi bi-link-45deg" style={{ fontSize: 32, display: "block", marginBottom: 8 }} />
+                        <span style={{ fontSize: 14 }}>No related records</span>
+                      </div>
                     )}
+                  </div>
+                </Tab>
+              )}
+
+              {/* Details tab */}
+              <Tab
+                eventKey="details"
+                title={
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                    <i className="bi bi-info-circle" />
+                    Details
                   </span>
                 }
               >
-                <div className="p-3">
-                  {relatedChilds?.length ? (
-                    relatedChilds.map((child, idx) => (
-                      <div key={idx} className="mb-3">
-                        <RecordRelatedList
-                          details={{ ...child, Id: data.Id, data }}
-                        />
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-5">
-                      <i className="bi bi-link-45deg display-4 text-muted"></i>
-                      <h5>No Related Records</h5>
-                    </div>
-                  )}
+                <div style={{ padding: "20px 8px" }}>
+                  {entityName === "documents"
+                    ? <DocumentPreview data={data} />
+                    : DetailComponent
+                      ? <DetailComponent isEdit={isEditMode} resetButton={() => setIsEditMode(false)} />
+                      : <p style={{ color: "#9ca3af", fontSize: 14, textAlign: "center", padding: 32 }}>
+                          No detail view available for this record type.
+                        </p>
+                  }
                 </div>
               </Tab>
-            )}
-            {/* ----------- DETAILS TAB ----------- */}
-            <Tab
-              eventKey="details"
-              title={
-                <span className="d-flex align-items-center gap-2">
-                  <i className="bi bi-info-circle"></i>
-                  Details
-                </span>
-              }
-            >
-              <div className="p-4">
-                {entityName === "dealers" && (
-                  <DealerDetail isEdit={isEditMode} resetButton={resetButton} />
-                )}
-                {entityName === "customers" && (
-                  <CustomerDetail
-                    isEdit={isEditMode}
-                    resetButton={resetButton}
-                  />
-                )}
-                {entityName === "brands" && (
-                  <BrandDetail isEdit={isEditMode} resetButton={resetButton} />
-                )}
-                {entityName === "products" && (
-                  <ProductDetail
-                    isEdit={isEditMode}
-                    resetButton={resetButton}
-                  />
-                )}
-                {entityName === "pricebook" && (
-                  <PricebookDetail
-                    isEdit={isEditMode}
-                    resetButton={resetButton}
-                  />
-                )}
-                {entityName === "pricebookentry" && (
-                  <PricebookEntryDetail
-                    isEdit={isEditMode}
-                    resetButton={resetButton}
-                  />
-                )}
-                {entityName === "users" && (
-                  <UserDetail isEdit={isEditMode} resetButton={resetButton} />
-                )}
-                {entityName === "loans" && (
-                  <LoanDetail isEdit={isEditMode} resetButton={resetButton} />
-                )}
-                {entityName === "loanitems" && (
-                  <LoanItemDetail
-                    isEdit={isEditMode}
-                    resetButton={resetButton}
-                  />
-                )}
-                {entityName === "documents" && <DocumentPreview data={data} />}
-              </div>
-            </Tab>
-          </Tabs>
-        </Card>
+            </Tabs>
+          </div>
+        </div>
       </div>
 
-      {/* -------------- EDIT MODAL -------------- */}
-      {showModal && (
-        <EditModals
-          onShow={showModal}
-          onHide={closeModal}
-          record={data}
-          refreshData={refresh}
-          entityName={entityName}
-        />
-      )}
-
-      {/* -------------- DELETE CONFIRMATION MODAL -------------- */}
+      {/* Delete modal */}
       <DeleteConfirmationModal
         show={showDeleteModal}
-        onHide={cancelDelete}
-        onConfirmBack={onConfirm}
+        onHide={() => setShowDeleteModal(false)}
+        onConfirmBack={() => { onBack?.(); refresh?.(); }}
         record={data}
         entityName={entityName}
       />
     </>
   );
 }
-
-export default DetailsPage;

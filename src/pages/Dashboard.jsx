@@ -96,8 +96,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchSummary();
+    document.title = "Dashboard | JP Finance";
   }, [fetchSummary]);
-
   /* ------------------ Quick Filters ------------------ */
   const applyQuickFilter = (rangeFn) => {
     const range = rangeFn();

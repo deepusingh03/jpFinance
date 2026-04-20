@@ -29,16 +29,15 @@ export default function ProductDetail({ isEdit, resetButton }) {
   async function fetchProduct() {
     try {
       setLoading(true);
-      const res = await fetch(`${apiData.PORT}/api/get/products?Id=${id}`);
-      const data = await res.json();
+      const data = await helperMethods.getEntityDetails(`products?Id=${id}`);
 
-      if (!res.ok || !data.data || data.data.length === 0) {
+      if (!data || data.length === 0) {
         toast.error(data.error || "Failed to load product");
         setProduct(null);
         return;
       }
 
-      const record = data.data[0];
+      const record = data[0];
       setProduct(record);
       setForm(record);
     } catch (err) {
