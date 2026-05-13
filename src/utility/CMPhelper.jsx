@@ -44,7 +44,8 @@ export const helperMethods = {
     if (value) {
       if (
         value.toString().includes("T05:00:00.000Z") ||
-        value.toString().includes("00:00.000Z")
+        value.toString().includes("00:00.000Z") ||
+         value.toString().includes("0.000Z")
       ) {
         return format(new Date(value), "dd/MM/yyyy");
       }

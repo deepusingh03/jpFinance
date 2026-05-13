@@ -5,6 +5,7 @@ import RecordLinkField from "../components/RecordLinkField";
 import { helperMethods } from "../utility/CMPhelper";
 import { toast } from "react-toastify";
 import { apiData } from "../utility/api";
+import { Checkbox } from "primereact/checkbox";
 
 // const API = 'https://jpfincorp.com';
 
@@ -19,7 +20,6 @@ export default function PricebookEntryDetail({ isEdit, resetButton }) {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
 
-
   useEffect(() => {
     setEditMode(isEdit);
     if (isEdit) {
@@ -32,8 +32,10 @@ export default function PricebookEntryDetail({ isEdit, resetButton }) {
   async function fetchEntry() {
     try {
       setLoading(true);
-      const data = await helperMethods.getEntityDetails(`pricebookentry?Id=${id}`);
-      console.log('data ::',data);
+      const data = await helperMethods.getEntityDetails(
+        `pricebookentry?Id=${id}`,
+      );
+      console.log("data ::", data);
       if (!data || data.length === 0) {
         toast.error(data.error || "Failed to load pricebookentry");
         setEntry(null);
@@ -61,7 +63,7 @@ export default function PricebookEntryDetail({ isEdit, resetButton }) {
   function validate() {
     const newErrors = {};
 
-    ["Name", "Unitprice"].forEach(f => {
+    ["Name", "Unitprice"].forEach((f) => {
       if (!form[f] || !form[f].toString().trim()) {
         newErrors[f] = "This field is required";
       }
@@ -89,7 +91,7 @@ export default function PricebookEntryDetail({ isEdit, resetButton }) {
       const payload = {
         ...form,
         ModifiedBy: helperMethods.fetchUser(),
-        ModifiedDate: helperMethods.dateToString()
+        ModifiedDate: helperMethods.dateToString(),
       };
       const res = await fetch(`${apiData.PORT}/api/pricebookentry/update`, {
         method: "PUT",
@@ -108,7 +110,7 @@ export default function PricebookEntryDetail({ isEdit, resetButton }) {
       fetchEntry();
       resetButton();
     } catch (e) {
-      toast.error("Unexpected error."+e);
+      toast.error("Unexpected error." + e);
     } finally {
       setSaving(false);
     }
@@ -121,44 +123,66 @@ export default function PricebookEntryDetail({ isEdit, resetButton }) {
   // RENDER FIELD HELPER
   // -------------------------------------------------
   const renderField = (label, name, options = {}) => {
-    const { editable = true, type = "text" ,required = false } = options;
-    const value = editMode ? form[name] : entry[name];
+  const { editable = true, type = "text", required = false } = options;
+  const value = editMode ? form[name] : entry[name];
+console.log('value ::',value);
+  return (
+    <Form.Group className="mb-3">
+      <Form.Label className="fw-semibold">
+        {required && <span className="text-danger">* </span>}
+        {label}
+      </Form.Label>
 
-    return (
-      <Form.Group className="mb-3">
-        <Form.Label className="fw-semibold">
-        {required && (
-            <span className="text-danger">* </span> 
-          )} 
-          {label}</Form.Label>
-
-        {editMode && editable ? (
-          <>
-            <Form.Control
-              type={type}
-              value={value || ""}
+      {editMode && editable ? (
+        <>
+          {type === "checkbox" ? (
+             <div className="d-flex align-items-center mb-2 custom-checkbox">
+            <Checkbox
+              inputId={name}
+              className="check-type"
+              value={name}
               onChange={(e) => {
-                const val = e.target.value;
-                setForm(prev => ({ ...prev, [name]: val }));
+                const checked = e.checked ? 1 : 0; // convert to 1/0
+                setForm(prev => ({ ...prev, [name]: checked }));
                 setErrors(prev => ({ ...prev, [name]: "" }));
               }}
-              isInvalid={!!errors[name]}
+              checked={value === 1 || value === "1"} // convert to boolean
             />
-            <Form.Control.Feedback type="invalid">
-              {errors[name]}
-            </Form.Control.Feedback>
-          </>
-        ) : (
-          <div className="p-2 bg-light rounded">{value || "—"}</div>
-        )}
-      </Form.Group>
-    );
-  };
+            </div>
+          ) : (
+            <>
+              <Form.Control
+                type={type}
+                value={value || ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setForm(prev => ({ ...prev, [name]: val }));
+                  setErrors(prev => ({ ...prev, [name]: "" }));
+                }}
+                isInvalid={!!errors[name]}
+              />
+              <Form.Control.Feedback type="invalid">
+                {errors[name]}
+              </Form.Control.Feedback>
+            </>
+          )}
+        </>
+      ) : (
+        <div className="p-2 bg-light rounded">
+          {type === "checkbox"
+            ? value === 1 || value === "1"
+              ? "Yes"
+              : "No"
+            : value || "—"}
+        </div>
+      )}
+    </Form.Group>
+  );
+};
 
   return (
     <div>
       <div className="card p-4 shadow-sm rounded-4">
-
         {/* HEADER */}
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h2 className="fw-bold mb-0">Pricebook Entry Details</h2>
@@ -168,23 +192,27 @@ export default function PricebookEntryDetail({ isEdit, resetButton }) {
             PRICEBOOK ENTRY INFORMATION
         ============================ */}
         <section className="mb-4">
-          <h4 className="fw-bold mb-3"><i className="bi bi-tag me-2"></i>Pricebook Entry Information</h4>
+          <h4 className="fw-bold mb-3">
+            <i className="bi bi-tag me-2"></i>Pricebook Entry Information
+          </h4>
 
           <div className="row">
-
             <div className="col-md-6">
-              {renderField("Name", "Name", { editable: false, })}
+              {renderField("Name", "Name", { editable: false })}
             </div>
 
             <div className="col-md-6">
-              {renderField("Unit Price", "Unitprice", { type: "number",required:true })}
+              {renderField("Active", "Isactive", {
+                editable: true,
+                type: "checkbox",
+              })}
             </div>
 
             {/* Pricebook Lookup */}
             <div className="col-md-6">
               <Form.Group className="mb-3">
                 <RecordLinkField
-                isRequired="true"
+                  isRequired="true"
                   label="Pricebook"
                   data={entry.pricebook__Pricebook}
                   table="pricebook"
@@ -196,14 +224,19 @@ export default function PricebookEntryDetail({ isEdit, resetButton }) {
             <div className="col-md-6">
               <Form.Group className="mb-3">
                 <RecordLinkField
-                isRequired="true"
+                  isRequired="true"
                   label="Product"
                   data={entry.products__Product}
                   table="product"
                 />
               </Form.Group>
             </div>
-
+            <div className="col-md-6">
+              {renderField("Unit Price", "Unitprice", {
+                type: "number",
+                required: true,
+              })}
+            </div>
           </div>
         </section>
 
@@ -211,7 +244,9 @@ export default function PricebookEntryDetail({ isEdit, resetButton }) {
             SYSTEM INFORMATION
         ============================ */}
         <section>
-          <h4 className="fw-bold mb-3"><i className="bi bi-clock-history me-2"></i>System Information</h4>
+          <h4 className="fw-bold mb-3">
+            <i className="bi bi-clock-history me-2"></i>System Information
+          </h4>
 
           <div className="row">
             <div className="col-md-6">
@@ -220,7 +255,6 @@ export default function PricebookEntryDetail({ isEdit, resetButton }) {
                 data={entry.users__CreatedBy}
                 table="user"
               />
-
             </div>
 
             <div className="col-md-6">
@@ -236,7 +270,9 @@ export default function PricebookEntryDetail({ isEdit, resetButton }) {
             </div>
 
             <div className="col-md-6">
-              {renderField("Modified Date", "ModifiedDate", { editable: false })}
+              {renderField("Modified Date", "ModifiedDate", {
+                editable: false,
+              })}
             </div>
           </div>
         </section>

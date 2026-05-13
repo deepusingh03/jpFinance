@@ -19,7 +19,7 @@ const RecordRelatedList = ({ details }) => {
 
   // Refresh on URL change
   useEffect(() => {
-    console.log('details :::',details)
+    console.log('location.pathname :::',location.pathname)
     setRefresh((prev) => prev + 1);
   }, [location.pathname]);
 
@@ -211,7 +211,7 @@ const RecordRelatedList = ({ details }) => {
         <Card.Body>
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
             <Card.Title className="text-capitalize mb-0">
-              {details?.entity || "Related Records"}
+              {location.pathname.split('/').filter(Boolean)[0] == 'customers' ? details.parentField || "Related Records" : details?.entity || "Related Records"}
             </Card.Title>
 
             {(details?.entity == "pricebook" ||

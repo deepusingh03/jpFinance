@@ -6,7 +6,7 @@ export default function RecordLinkField({
   isRequired = false,
   label,
   table,
-  data
+  data,
 }) {
   const navigate = useNavigate();
 
@@ -15,23 +15,25 @@ export default function RecordLinkField({
   const firstName = data?.FirstName || data?.firstName;
   const lastName = data?.LastName || data?.lastName;
   const name = data?.Name || data?.name;
-
   // Determine display name with priority: firstName+lastName > name > fallback
-  const displayName = (firstName || lastName)
-    ? `${firstName || ""} ${lastName || ""}`.trim()
-    : name || id || "—";
+  const displayName =
+    table === "pricebook"
+      ? data?.PricebookName || name || id || "—"
+      : firstName || lastName
+        ? `${firstName || ""} ${lastName || ""}`.trim()
+        : name || id || "—";
 
   const goToRecord = () => {
     if (!id) return;
-    navigate(`/${table === 'pricebook' || table === 'pricebookentry' ? table : table + 's'}/detail/${id}/view`);
+    navigate(
+      `/${table === "pricebook" || table === "pricebookentry" ? table : table + "s"}/detail/${id}/view`,
+    );
   };
 
   return (
     <Form.Group className="mb-3">
       <Form.Label className="fw-semibold">
-        {isRequired && (
-          <span className="text-danger">* </span>
-        )}
+        {isRequired && <span className="text-danger">* </span>}
         {label}
       </Form.Label>
 

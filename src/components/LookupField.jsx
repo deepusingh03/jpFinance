@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 // eslint-disable-next-line no-unused-vars
-import Select,{components} from "react-select";
+import Select, { components } from "react-select";
 import { Form, Button } from "react-bootstrap";
 import EditModals from "../utility/EditModals";
 import { helperMethods } from "../utility/CMPhelper";
@@ -13,7 +13,7 @@ const LookupField = ({
   isDisabled = false,
   isInvalid = false,
   isCreateable = false,
-  lookupData
+  lookupData,
 }) => {
   const [allValues, setAllValues] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -22,16 +22,32 @@ const LookupField = ({
   const [showModal, setShowModal] = useState(false);
   const [tempEntityName, setTempEntityName] = useState(null);
 
+  /** ---------------- Display Name Helper ---------------- */
+  const generateDisplayName = (data) => {
+    if (
+      entityName?.toLowerCase() === "pricebook" &&
+      data?.PricebookName
+    ) {
+      return data.PricebookName;
+    }
+
+    if (data?.Name) {
+      return data.Name;
+    }
+
+    return `${data?.FirstName || ""} ${data?.LastName || ""}`.trim();
+  };
+
   /** ---------------- Fetch Data ---------------- */
   const fetchData = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const data = await helperMethods.getEntityDetails(`${entityName}`);
+      const data = await helperMethods.getEntityDetails(entityName);
       setAllValues(data || []);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Something went wrong");
     } finally {
       setIsLoading(false);
     }
@@ -42,11 +58,13 @@ const LookupField = ({
   }, [entityName]);
 
   /** ---------------- Build Options ---------------- */
-  const options = allValues.map((record) => ({
-    value: record.Id,
-    label: record.Name ? record.Name : `${record.FirstName} ${record.LastName}`,
-    data: record,
-  }));
+  const options = useMemo(() => {
+    return allValues.map((record) => ({
+      value: record.Id,
+      label: generateDisplayName(record),
+      data: record,
+    }));
+  }, [allValues, entityName]);
 
   /** ---------------- Sync External Value ---------------- */
   useEffect(() => {
@@ -56,7 +74,7 @@ const LookupField = ({
     } else {
       setSelected(null);
     }
-  }, [value, allValues]);
+  }, [value, options]);
 
   /** ---------------- On Select Change ---------------- */
   const handleChange = (option) => {
@@ -68,27 +86,23 @@ const LookupField = ({
   const handleNewRecord = (data) => {
     if (!data?.Id) return;
 
-    // Add to options list
     setAllValues((prev) => [...prev, data]);
 
-    // Create react-select option
     const newOption = {
       value: data.Id,
-      label: data.Name ? data.Name : `${data.FirstName} ${data.LastName}`,
+      label: generateDisplayName(data),
       data,
     };
 
-    // Select it
     setSelected(newOption);
     onSelect(data);
-
-    // setShowModal(false);
   };
 
   /** ---------------- Custom Menu ---------------- */
   const Menu = (props) => (
     <components.Menu {...props}>
       <div>{props.children}</div>
+
       {!isDisabled && isCreateable && (
         <div style={{ borderTop: "1px solid #eee", padding: 8 }}>
           <Button
@@ -101,6 +115,7 @@ const LookupField = ({
               } else {
                 setTempEntityName(entityName);
               }
+
               setShowModal(true);
             }}
           >
@@ -127,7 +142,10 @@ const LookupField = ({
         />
 
         {isInvalid && (
-          <Form.Control.Feedback type="invalid" style={{ display: "block" }}>
+          <Form.Control.Feedback
+            type="invalid"
+            style={{ display: "block" }}
+          >
             This field is required
           </Form.Control.Feedback>
         )}

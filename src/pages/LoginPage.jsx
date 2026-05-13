@@ -45,7 +45,9 @@ function LoginPage() {
       });
 
       const data = await response.json();
+      console.log('data :: ',data);
       if (!response.ok || !data.success) {
+        toast.error(data.message || "Invalid email or password.");
         throw new Error(data.message || "Invalid email or password.");
       }
 

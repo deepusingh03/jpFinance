@@ -28,7 +28,7 @@ function NewDealerModal({ show, handleClose, fetchDealers, record, newData }) {
   const validateFields = () => {
     const newErrors = {};
     const requiredFields = ["Name", "Phone"];
-
+    const pinCodeRegex = /^[1-9][0-9]{5}$/;
     requiredFields.forEach((field) => {
       if (!newDealer[field]) {
         newErrors[field] = "This field is required";
@@ -48,13 +48,17 @@ function NewDealerModal({ show, handleClose, fetchDealers, record, newData }) {
       }
       // Starts with valid digits (6-9 in India)
       else if (!/^[6-9]\d{9}$/.test(phone)) {
-        newErrors.Phone = "Invalid Indian mobile number";
+        newErrors.Phone = "Invalid Phone number";
       }
     }
     if (newDealer.Email && !/\S+@\S+\.\S+/.test(newDealer.Email)) {
       newErrors.Email = "Invalid email format";
     }
-
+    if (newDealer.PinCode && newDealer.PinCode.toString().trim()) {
+      if (!pinCodeRegex.test(newDealer.PinCode.toString().trim())) {
+        newErrors.PinCode = "PIN Code must be a valid 6-digit number";
+      }
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
